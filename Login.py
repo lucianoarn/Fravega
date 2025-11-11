@@ -2,6 +2,8 @@ from tkinter import *
 from tkinter import messagebox
 import mysql.connector
 import subprocess
+#para que funcione este codigo tienen que poner en la terminal pip install mysql-connector-python
+
 
 # =================================================================
 # CONFIGURACIÓN Y CONEXIÓN A MYSQL
