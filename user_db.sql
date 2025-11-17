@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 11-11-2025 a las 14:15:31
+-- Tiempo de generación: 17-11-2025 a las 04:56:10
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -20,6 +20,25 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `user_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `inventory`
+--
+
+CREATE TABLE `inventory` (
+  `ID` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `stock` int(11) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `inventory`
+--
+
+INSERT INTO `inventory` (`ID`, `name`, `stock`) VALUES
+(1, 'Tv samsung', 10);
 
 -- --------------------------------------------------------
 
@@ -46,6 +65,12 @@ INSERT INTO `users` (`ID`, `username`, `password`, `sector_id`) VALUES
 --
 
 --
+-- Indices de la tabla `inventory`
+--
+ALTER TABLE `inventory`
+  ADD PRIMARY KEY (`ID`);
+
+--
 -- Indices de la tabla `users`
 --
 ALTER TABLE `users`
@@ -55,6 +80,12 @@ ALTER TABLE `users`
 --
 -- AUTO_INCREMENT de las tablas volcadas
 --
+
+--
+-- AUTO_INCREMENT de la tabla `inventory`
+--
+ALTER TABLE `inventory`
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `users`

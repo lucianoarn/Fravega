@@ -56,20 +56,33 @@ def abrir_registro():
         messagebox.showerror("Error", "Asegúrate de que 'registro.py' esté en la misma carpeta.")
 
 def open_app_window(username):
-    """Abre la ventana principal de la aplicación."""
-    screen = Toplevel(root)
-    screen.title("App Fravega")
-    screen.geometry('925x500+300+200')
-    screen.config(bg='white')
-
-    Label(screen, text=f'Bienvenido/a {username} a Fravega', bg='#fff', 
-          font=('Calibri(Body)', 30, 'bold')).pack(pady=100, expand=True)
+    """Ejecuta el script home_gerente.py como un proceso independiente."""
     
-    def logout():
-        screen.destroy()
-        root.deiconify() # Muestra la ventana de Login de nuevo
+    # 1. Oculta la ventana de login
+    root.withdraw()
+    
+    try:
+        # 2. Ejecuta el archivo 'home_gerente.py'
+        # ¡Usamos el nombre de archivo que me pediste!
+        process = subprocess.Popen(['python', 'home_gerente.py', username], 
+                                   stdout=subprocess.PIPE, 
+                                   stderr=subprocess.PIPE, 
+                                   text=True)
         
-    Button(screen, text="Cerrar Sesión", command=logout).pack(pady=20)
+        # 3. Espera a que el proceso del Home termine (es importante para el logout)
+        stdout, stderr = process.communicate()
+        
+        # 4. Cuando el Home termina, revisa si fue por el logout intencional
+        if "LOGOUT_COMPLETE" in stdout:
+            root.deiconify() # Muestra la ventana de Login de nuevo
+        else:
+            # Manejo de cierre inesperado
+            messagebox.showerror("Error del Home", "El Panel de Control se cerró inesperadamente.")
+            root.deiconify()
+            
+    except FileNotFoundError:
+        messagebox.showerror("Error", "Asegúrate de que 'home_gerente.py' esté en la misma carpeta.")
+        root.deiconify()
 
 
 def ingresar():
@@ -91,7 +104,6 @@ def ingresar():
             user_found = cursor.fetchone() 
 
             if user_found:
-                messagebox.showinfo('Login', f'¡Bienvenido/a {username}!')
                 root.withdraw()
                 open_app_window(username)
 
@@ -114,8 +126,10 @@ root.title('Login')
 root.geometry('925x500+300+200')
 root.configure(bg="#fff")
 root.resizable(False,False)
+root.state('zoomed')
 
 # Funciones de PLACEHOLDER
+
 def on_enter(e):
     e.widget.delete(0, 'end')
 
