@@ -1,8 +1,8 @@
-# content_area.py
 from tkinter import Frame, Label, Button, LEFT, FLAT, BOTH, END, X, GROOVE
 # Importar módulos
 from constants import *
-from views import UserManagementView, InventoryManagementView
+from views import UserManagementView, InventoryManagementView, FinanzasView, MarketingView, RRHHView 
+# ^^^ ¡SOLO ESTA LÍNEA DEBE EXISTIR PARA VIEWS! ^^^
 
 class ContentArea:
     """
@@ -29,43 +29,63 @@ class ContentArea:
         """Configura el área principal de contenido con separadores verticales y borde derecho final."""
         # 1. Menú Principal (Sidebar) - Borde a la derecha
         self.main_menu = Frame(self.content_container, width=200, bg=COLOR_SIDEBAR, 
-                               highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
-                               highlightthickness=1) 
+                                highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
+                                highlightthickness=1) 
         self.main_menu.grid(row=0, column=0, sticky="nswe") 
         self.main_menu.pack_propagate(False) 
         
         # 2. Área de Listado (Central) - Borde a la derecha
         self.list_area = Frame(self.content_container, width=300, bg=COLOR_BG_WHITE, 
-                               highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
-                               highlightthickness=1) 
+                                highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
+                                highlightthickness=1) 
         self.list_area.grid(row=0, column=1, sticky="nswe")
         self.list_area.pack_propagate(False)
 
         # 3. Área de Detalle (Derecha) - Borde a la derecha
         self.detail_area = Frame(self.content_container, bg=COLOR_BG_WHITE,
-                                 highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
-                                 highlightthickness=1) 
+                                    highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
+                                    highlightthickness=1) 
         self.detail_area.grid(row=0, column=2, sticky="nswe") 
         self.detail_area.grid_columnconfigure(0, weight=1)
         self.detail_area.grid_rowconfigure(0, weight=1)
 
+    # content_area.py (dentro de la clase ContentArea)
+
     def _populate_main_menu(self):
-        """Crea los botones del menú lateral."""
-        self.buttons_data = [
-            ("📊 Dashboard", self.show_dashboard_list),
-            ("👥 Gestión Usuarios", self.show_user_management_list),
-            ("📦 Inventario", self.show_inventory_list),
-            ("📝 Reportes", self.show_reports_list),
-        ]
+        """Llena el área de menú principal con los botones de navegación."""
+        # Título del Menú
+        # CORRECCIÓN: Usar self.main_menu en lugar de self.sidebar
+        Label(self.main_menu, text="Menú Principal", font=FONT_SUBHEADING, 
+              bg=COLOR_SIDEBAR, fg=COLOR_TEXT_HEADING).pack(pady=(10, 5))
         
-        for text, command in self.buttons_data:
-            self._create_menu_button(text, command)
+        # Separador
+        # CORRECCIÓN: Usar self.main_menu en lugar de self.sidebar
+        Frame(self.main_menu, bg=COLOR_BORDER_LIGHT, height=2).pack(fill='x', padx=10, pady=5)
+
+        # Botones de Módulos
+        # CORRECCIÓN: Usar self._create_menu_button y corregir el comando de Usuarios
+        self._create_menu_button("👥 Gestión de Usuarios", self.show_user_management_list)
+        self._create_menu_button("📦 Gestión de Inventario", self.show_inventory_list)
+        
+        # --- NUEVOS MÓDULOS EN LA COLUMNA IZQUIERDA ---
+        self._create_menu_button("💰 Finanzas", self.show_finance_list)
+        self._create_menu_button("📈 Marketing", self.show_marketing_list)
+        self._create_menu_button("🧑‍💼 RRHH", self.show_rrhh_list)
+        # ----------------------------------------------
+        
+        # Separador para Reportes 
+        # CORRECCIÓN: Usar self.main_menu en lugar de self.sidebar
+        Frame(self.main_menu, bg=COLOR_BORDER_LIGHT, height=2).pack(fill='x', padx=10, pady=5)
+        self._create_menu_button("📄 Reportes", self.show_reports_list)
+
+    # ... (el resto de los métodos de la clase ContentArea)
             
     def _create_menu_button(self, text, command):
+        # CORRECCIÓN: Definición del método con guion bajo
         btn = Button(self.main_menu, text=text, bg=COLOR_SIDEBAR, fg=COLOR_TEXT_NORMAL, 
-                     font=FONT_MAIN, relief=FLAT, anchor='w', padx=20,
-                     activebackground=COLOR_ACCENT, activeforeground=COLOR_BG_WHITE,
-                     command=command)
+                      font=FONT_MAIN, relief=FLAT, anchor='w', padx=20,
+                      activebackground=COLOR_ACCENT, activeforeground=COLOR_BG_WHITE,
+                      command=command)
         btn.pack(fill='x', ipady=10, pady=(10, 1)) 
         
         btn.bind("<Enter>", lambda e, b=btn: b.config(bg='#e0e0e0'))
@@ -109,9 +129,9 @@ class ContentArea:
               font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).grid(row=0, column=0, sticky="w", pady=(0, 10))
 
         placeholder = Label(self.current_detail_frame, 
-                            text="ÁREA DE TRABAJO DEL DASHBOARD\n\nAquí debes agregar los GRÁFICOS y MÉTICAS que necesita el Gerente (Ventas, Stock, etc.).", 
-                            font=('Segoe UI', 12, 'italic'), bg=COLOR_CARD_BG, fg=COLOR_TEXT_NORMAL,
-                            height=15, relief='groove')
+                             text="ÁREA DE TRABAJO DEL DASHBOARD\n\nAquí debes agregar los GRÁFICOS y MÉTICAS que necesita el Gerente (Ventas, Stock, etc.).", 
+                             font=('Segoe UI', 12, 'italic'), bg=COLOR_CARD_BG, fg=COLOR_TEXT_NORMAL,
+                             height=15, relief='groove')
         placeholder.grid(row=1, column=0, sticky="nswe", padx=10, pady=20)
 
     # =================================================================
@@ -177,6 +197,42 @@ class ContentArea:
             self.create_list_card(name, stock, note, lambda n=name: self._create_default_detail("Inventario", n))
 
         self.switch_detail_frame(InventoryManagementView)
+    
+    def show_finance_list(self):
+        """Muestra la vista de Finanzas."""
+        self.clear_list_area()
+        
+        header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
+        header_list_frame.pack(fill='x')
+        Label(header_list_frame, text="Ingresos Recientes", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+        
+        Label(self.list_area, text="Resumen Financiero: Ver detalle en la derecha.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
+
+        self.switch_detail_frame(FinanzasView) # Cambia a la vista de detalle de Finanzas
+
+    def show_marketing_list(self):
+        """Muestra la vista de Marketing."""
+        self.clear_list_area()
+        
+        header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
+        header_list_frame.pack(fill='x')
+        Label(header_list_frame, text="Campañas Activas", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+
+        Label(self.list_area, text="Campañas: Ver detalle en la derecha.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
+
+        self.switch_detail_frame(MarketingView) # Cambia a la vista de detalle de Marketing
+
+    def show_rrhh_list(self):
+        """Muestra la vista de RRHH."""
+        self.clear_list_area()
+        
+        header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
+        header_list_frame.pack(fill='x')
+        Label(header_list_frame, text="Personal y Reclutamiento", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+        
+        Label(self.list_area, text="Datos de RRHH: Ver detalle en la derecha.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
+
+        self.switch_detail_frame(RRHHView) # Cambia a la vista de detalle de RRHH
 
     def show_reports_list(self):
         self.clear_list_area()

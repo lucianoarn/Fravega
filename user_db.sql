@@ -94,6 +94,70 @@ ALTER TABLE `users`
   MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
+CREATE TABLE `financial_movements` (
+  `id` INT(11) NOT NULL,
+  `type` VARCHAR(50) NOT NULL COMMENT 'Tipo de movimiento: Ingreso o Gasto',
+  `amount` DECIMAL(10, 2) NOT NULL COMMENT 'Monto del movimiento (positivo para ingreso, negativo para gasto)',
+  `description` VARCHAR(255) DEFAULT NULL,
+  `date` DATE NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Índices para financial_movements
+--
+ALTER TABLE `financial_movements`
+  ADD PRIMARY KEY (`id`);
+
+ALTER TABLE `financial_movements`
+  MODIFY `id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+-- --------------------------------------------------------
+--
+-- Estructura de tabla para la tabla `campaigns` (Marketing)
+--
+CREATE TABLE `campaigns` (
+  `campaign_id` INT(11) NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  `objective` VARCHAR(255) DEFAULT NULL,
+  `start_date` DATE NOT NULL,
+  `end_date` DATE DEFAULT NULL,
+  `budget` DECIMAL(10, 2) DEFAULT 0.00,
+  `status` VARCHAR(50) DEFAULT 'Active' COMMENT 'Active, Completed, Paused'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Índices para campaigns
+--
+ALTER TABLE `campaigns`
+  ADD PRIMARY KEY (`campaign_id`);
+
+ALTER TABLE `campaigns`
+  MODIFY `campaign_id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+-- --------------------------------------------------------
+--
+-- Estructura de tabla para la tabla `employees` (RRHH)
+--
+CREATE TABLE `employees` (
+  `employee_id` INT(11) NOT NULL,
+  `first_name` VARCHAR(100) NOT NULL,
+  `last_name` VARCHAR(100) NOT NULL,
+  `hire_date` DATE NOT NULL,
+  `salary` DECIMAL(10, 2) DEFAULT NULL,
+  `position` VARCHAR(100) DEFAULT NULL,
+  `sector_id` INT(11) DEFAULT NULL COMMENT 'Relacionado con sector_id en users si es necesario',
+  `is_active` BOOLEAN DEFAULT TRUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Índices para employees
+--
+ALTER TABLE `employees`
+  ADD PRIMARY KEY (`employee_id`);
+
+ALTER TABLE `employees`
+  MODIFY `employee_id` INT(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
