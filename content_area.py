@@ -158,7 +158,7 @@ class ContentArea:
         header_list_frame.pack(fill='x')
         Label(header_list_frame, text="Usuarios Recientes", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
 
-        Label(self.list_area, text="Ver la lista completa en el área de 'Gestión de Usuarios'.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
+        Label(self.list_area, text="la lista completa de 'Gestión de Usuarios'.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
             
         self.switch_detail_frame(UserManagementView)
 
