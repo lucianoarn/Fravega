@@ -1,9 +1,9 @@
 # dialogs.py
-from tkinter import Toplevel, Frame, Label, Entry, Button, messagebox, FLAT, StringVar, OptionMenu
+from tkinter import Toplevel, Frame, Label, Entry, Button, messagebox, FLAT, StringVar, OptionMenu, ttk
 import mysql.connector
 from datetime import datetime
 # Importar constantes (Asegúrate de que constants.py existe y tiene estas variables)
-from constants import COLOR_ACCENT, COLOR_BG_WHITE, FONT_MAIN, FONT_SUBHEADING, FONT_HEADING
+from constants import COLOR_ACCENT, COLOR_BG_WHITE, FONT_MAIN, FONT_SUBHEADING, FONT_HEADING, POSICIONES_EMPLEADOS
 
 # =================================================================
 # DIÁLOGOS DE AGREGAR (Estructuras de ejemplo basadas en tus snippets)
@@ -322,57 +322,89 @@ class AddMarketingCampaignDialog(Toplevel):
 # ---
 
 class AddEmployeeDialog(Toplevel):
-    """Diálogo para agregar un nuevo empleado (RRHH)."""
-    def __init__(self, master, db_conn, refresh_callback):
+    """Diálogo para agregar un nuevo empleado."""
+    def __init__(self, master, db_conn, refresh_callback=None):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.title("Agregar Nuevo Empleado")
-        self.geometry("400x450")
+        self.title("Alta Nuevo Empleado")
+        self.geometry("450x450")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master); self.grab_set(); self.focus_force()
+        self.transient(master)
+        self.grab_set()
+        self.focus_force()
+        
+        # Filtrar las posiciones, ya que "Gerente de Tienda" no se puede dar de alta aquí (es un rol de administrador/usuario)
+        self.posiciones_disponibles = [p for p in POSICIONES_EMPLEADOS if p != "Gerente de Tienda"]
+        
         self.create_widgets()
 
     def create_widgets(self):
         main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Nuevo Empleado", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Alta Nuevo Empleado", font=FONT_SUBHEADING, 
+              bg=COLOR_BG_WHITE, fg='black').pack(pady=10)
 
-        # Nombre y Apellido
-        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
-        self.fname_entry = Entry(main_frame, font=FONT_MAIN, width=40)
-        self.fname_entry.pack(fill='x', pady=2)
-        Label(main_frame, text="Apellido:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
-        self.lname_entry = Entry(main_frame, font=FONT_MAIN, width=40)
-        self.lname_entry.pack(fill='x', pady=2)
+        fields_frame = Frame(main_frame, bg=COLOR_BG_WHITE)
+        fields_frame.pack(pady=10, fill='x')
 
-        # Posición
-        Label(main_frame, text="Posición:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
-        self.pos_entry = Entry(main_frame, font=FONT_MAIN, width=40)
-        self.pos_entry.pack(fill='x', pady=2)
+        # Variables de control
+        self.fname_var = StringVar()
+        self.lname_var = StringVar()
+        self.pos_var = StringVar(value=self.posiciones_disponibles[0]) # Selecciona el primero por defecto
+        self.salary_var = StringVar()
+        self.hire_date_var = StringVar(value=datetime.now().strftime('%Y-%m-%d')) # Fecha actual por defecto
 
-        # Salario
-        Label(main_frame, text="Salario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
-        self.salary_entry = Entry(main_frame, font=FONT_MAIN, width=40)
-        self.salary_entry.pack(fill='x', pady=2)
+        # Fila 1: Nombre
+        Label(fields_frame, text="Nombre:", font=FONT_MAIN, bg=COLOR_BG_WHITE, width=15, anchor='w').grid(row=0, column=0, pady=5, sticky='w')
+        Entry(fields_frame, textvariable=self.fname_var, font=FONT_MAIN).grid(row=0, column=1, pady=5, padx=5, sticky='ew')
+
+        # Fila 2: Apellido
+        Label(fields_frame, text="Apellido:", font=FONT_MAIN, bg=COLOR_BG_WHITE, width=15, anchor='w').grid(row=1, column=0, pady=5, sticky='w')
+        Entry(fields_frame, textvariable=self.lname_var, font=FONT_MAIN).grid(row=1, column=1, pady=5, padx=5, sticky='ew')
+
+        # Fila 3: Posición (¡El cambio clave! Ahora es un Combobox)
+        Label(fields_frame, text="Posición:", font=FONT_MAIN, bg=COLOR_BG_WHITE, width=15, anchor='w').grid(row=2, column=0, pady=5, sticky='w')
         
-        # Fecha de Contratación
-        Label(main_frame, text="Fecha de Contratación (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
-        self.hire_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
-        self.hire_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
-        self.hire_date_entry.pack(fill='x', pady=2)
+        # Estilo para Combobox (opcional, pero ayuda a que se vea mejor)
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure("TCombobox", fieldbackground=COLOR_BG_WHITE, background=COLOR_BG_WHITE)
+        
+        # El Combobox con las posiciones disponibles
+        self.pos_combobox = ttk.Combobox(
+            fields_frame, 
+            textvariable=self.pos_var, 
+            values=self.posiciones_disponibles, # Usamos la lista filtrada
+            state='readonly', # Hace que solo se pueda seleccionar de la lista
+            font=FONT_MAIN
+        )
+        self.pos_combobox.grid(row=2, column=1, pady=5, padx=5, sticky='ew')
+        
+        # Fila 4: Salario
+        Label(fields_frame, text="Salario:", font=FONT_MAIN, bg=COLOR_BG_WHITE, width=15, anchor='w').grid(row=3, column=0, pady=5, sticky='w')
+        Entry(fields_frame, textvariable=self.salary_var, font=FONT_MAIN).grid(row=3, column=1, pady=5, padx=5, sticky='ew')
 
-        # Botón
-        Button(main_frame, text="Guardar Empleado", command=self.save_employee, 
-               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+        # Fila 5: Fecha de Contratación
+        Label(fields_frame, text="Fecha (YYYY-MM-DD):", font=FONT_MAIN, bg=COLOR_BG_WHITE, width=15, anchor='w').grid(row=4, column=0, pady=5, sticky='w')
+        Entry(fields_frame, textvariable=self.hire_date_var, font=FONT_MAIN).grid(row=4, column=1, pady=5, padx=5, sticky='ew')
 
+        # Configurar la columna 1 para que se expanda
+        fields_frame.grid_columnconfigure(1, weight=1)
+
+        # Botones
+        Button(main_frame, text="Guardar Empleado", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
+               font=FONT_MAIN, relief=FLAT, command=self.save_employee).pack(pady=20, fill='x')
+        
+        # Se asegura de que la variable 'position' se obtenga correctamente del Combobox
     def save_employee(self):
-        fname = self.fname_entry.get()
-        lname = self.lname_entry.get()
-        position = self.pos_entry.get()
-        salary_str = self.salary_entry.get()
-        hire_date_str = self.hire_date_entry.get()
+        fname = self.fname_var.get().strip()
+        lname = self.lname_var.get().strip()
+        # ¡Obtener el valor del Combobox!
+        position = self.pos_var.get() 
+        salary_str = self.salary_var.get().strip()
+        hire_date_str = self.hire_date_var.get().strip()
         
         if not all([fname, lname, position, salary_str, hire_date_str]):
             messagebox.showerror("Error", "Debe completar todos los campos.")

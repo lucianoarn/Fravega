@@ -15,3 +15,15 @@ COLOR_BORDER_LIGHT = '#cccccc' # Color de la línea divisoria
 FONT_MAIN = ('Segoe UI', 10)
 FONT_HEADING = ('Segoe UI', 18, 'bold')
 FONT_SUBHEADING = ('Segoe UI', 14, 'bold')
+
+POSICIONES_EMPLEADOS = [
+    "Callcenter", 
+    "Repositor", 
+    "Cajero", 
+    "Programador",
+    "Vendedor de Salón",
+    "Encargado de Depósito",
+    "Asistente Contable",
+    "Jefe de Sector",
+    "Gerente de Tienda"
+]

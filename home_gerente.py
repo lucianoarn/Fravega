@@ -75,7 +75,24 @@ class GerenteHome:
                 self.db_conn.close()
             print("LOGOUT_COMPLETE") 
             self.master.destroy()
-            sys.exit(0) 
+            sys.exit(0)
+     
+
+    # El método switch_list_frame debe existir y ser similar a switch_detail_frame
+    def switch_list_frame(self, view_factory):
+        """Cambia el contenido del área de lista (Columna 1, que usamos aquí para el dashboard)."""
+        if self.current_list_frame:
+            self.current_list_frame.frame.destroy()
+            
+        # Creamos la nueva vista, pasándole el frame contenedor (columna 1+2)
+        # NOTA: Para el dashboard, podrías querer usar las columnas 1 y 2
+        # Aquí asumimos que lo quieres grande, ocupando todo el espacio.
+        new_view = view_factory(self.content_container, self.app_controller)
+        self.current_list_frame = new_view
+        
+        # Hacemos que la vista del dashboard ocupe toda el área de contenido (Col 1 y Col 2)
+        self.current_list_frame.frame.grid(row=0, column=1, columnspan=2, sticky="nswe")
+        # Asegúrate de que las columnas 1 y 2 estén visibles si las necesitas
 
 # =================================================================
 # INICIO DE LA APLICACIÓN
