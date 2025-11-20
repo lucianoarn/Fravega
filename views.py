@@ -1,27 +1,32 @@
-# views.py (CON BAJA Y ESTRUCTURA DE MODIFICACIÓN FUNCIONAL)
+# views.py 
 from tkinter import Frame, Label, Button, ttk, messagebox, LEFT, RIGHT, END, CENTER, FLAT, Y, BOTH, NO, YES, GROOVE, W, N, E, S
 import mysql.connector 
 # Importar módulos y constantes
 from constants import *
-# Se IMPORTAN los diálogos necesarios para las vistas restantes
-from dialogs import AddInventoryDialog, AddFinanceDialog, AddMarketingCampaignDialog, AddEmployeeDialog
+# Se IMPORTAN los diálogos, incluyendo los nuevos de edición
+from dialogs import (
+    AddInventoryDialog, AddFinanceDialog, AddMarketingCampaignDialog, AddEmployeeDialog,
+    EditInventoryDialog, EditFinanceDialog, EditMarketingCampaignDialog, EditEmployeeDialog # <-- NUEVOS
+)
 
 # =================================================================
 # LÓGICA DE UTILIDAD
 # =================================================================
 
-def get_selected_item_id(tree):
-    """Obtiene el ID del elemento seleccionado en un Treeview."""
+def get_selected_item_data(tree):
+    """
+    Obtiene todos los valores (incluyendo el ID) del elemento seleccionado en un Treeview.
+    Retorna una tupla de valores o None.
+    """
     selected_item = tree.focus()
     if not selected_item:
         messagebox.showwarning("Selección Requerida", "Por favor, selecciona un registro de la tabla primero.")
         return None
     
-    # El primer valor en el Treeview siempre debe ser el ID
+    # Retorna todos los valores del ítem seleccionado como una tupla
     item_values = tree.item(selected_item, 'values')
-    if item_values:
-        return item_values[0]
-    return None
+    return item_values
+
 
 # =================================================================
 # VISTAS PRINCIPALES (Inventario)
@@ -30,166 +35,57 @@ def get_selected_item_id(tree):
 class InventoryManagementView:
     """Vista para la gestión de inventario, con diseño de botones unificado."""
     def __init__(self, master_frame, home_app):
-        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=30, pady=5)
+        self.home_app = home_app
+        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=10, pady=10)
         self.frame.grid(row=0, column=0, sticky="nswe")
         self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(2, weight=1) # Fila de la tabla central
-        self.home_app = home_app 
+        self.frame.grid_rowconfigure(1, weight=1) # Fila del Treeview
+        
+        Label(self.frame, text="Gestión de Inventario", font=FONT_HEADING, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).grid(row=0, column=0, sticky="w", pady=10, padx=10)
+        
+        self._setup_treeview()
+        self._setup_buttons()
+        self.load_data() # Cargar datos iniciales
 
-        # Título de la vista
-        header_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
-        header_frame.grid(row=0, column=0, sticky="w", pady=(10, 10))
-        Label(header_frame, text="📦 Gestión de Inventario", font=FONT_HEADING, 
-              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).pack(side=LEFT)
+    def _setup_treeview(self):
+        # Configuración del Treeview
+        self.tree = ttk.Treeview(self.frame, columns=('ID', 'Nombre', 'Stock'), show='headings')
+        self.tree.grid(row=1, column=0, sticky='nswe', padx=10, pady=5)
+        
+        # Scrollbar
+        vsb = ttk.Scrollbar(self.frame, orient="vertical", command=self.tree.yview)
+        vsb.grid(row=1, column=1, sticky='nsw', pady=5)
+        self.tree.configure(yscrollcommand=vsb.set)
 
-        # Contenedor de Acciones (Diseño UNIFICADO)
-        actions_frame = Frame(self.frame, bg=COLOR_CARD_BG, padx=20, pady=10, relief=GROOVE, bd=1)
-        actions_frame.grid(row=1, column=0, sticky="ew", pady=(10, 20))
-        actions_frame.grid_columnconfigure((0, 1, 2), weight=1) # 3 Columnas
+        # Encabezados
+        self.tree.heading('ID', text='ID', anchor=CENTER)
+        self.tree.heading('Nombre', text='Nombre', anchor=CENTER)
+        self.tree.heading('Stock', text='Stock', anchor=CENTER)
 
-        # Botones de Inventario (UNIFICADO)
-        Button(actions_frame, text="➕ Nuevo Producto", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.add_product).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        # Columnas
+        self.tree.column('ID', width=50, anchor=CENTER)
+        self.tree.column('Nombre', width=250, anchor=W)
+        self.tree.column('Stock', width=100, anchor=CENTER)
+
+    def _setup_buttons(self):
+        button_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
+        button_frame.grid(row=2, column=0, sticky="w", padx=10, pady=10)
+        
+        # Botón AGREGAR
+        Button(button_frame, text="➕ Agregar", command=self.agregar_item, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+
+        # Botón MODIFICAR (Nuevo)
+        Button(button_frame, text="✏️ Modificar", command=self.modificar_item, 
+               bg='#f39c12', fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
                
-        Button(actions_frame, text="➖ Baja Producto", bg=COLOR_ERROR, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.baja_producto).grid(row=0, column=1, padx=5, pady=5, sticky="ew") # CAMBIADO
+        # Botón ELIMINAR/BAJA
+        Button(button_frame, text="🗑️ Eliminar", command=self.baja_item, 
+               bg=COLOR_ERROR, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
 
-        Button(actions_frame, text="⚙️ Modificar Producto", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.modificar_producto).grid(row=0, column=2, padx=5, pady=5, sticky="ew") # CAMBIADO
-
-
-        # Configuración del Treeview (Tabla) - En row=2
-        self.tree = ttk.Treeview(self.frame, columns=("ID", "Producto", "Stock"), show='headings')
-        self.tree.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
-
-        self.tree.heading("ID", text="ID", anchor=CENTER)
-        self.tree.heading("Producto", text="Nombre del Producto")
-        self.tree.heading("Stock", text="Stock")
-        
-        self.tree.column("ID", width=50, stretch=NO, anchor=CENTER)
-        self.tree.column("Producto", width=250, stretch=YES)
-        self.tree.column("Stock", width=100, stretch=NO, anchor=CENTER)
-        
-        self.load_inventory_data()
-
-    def load_inventory_data(self):
-        """Carga datos de la tabla 'inventory' en la Treeview (Consulta REAL)."""
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-
-        conn = self.home_app.db_conn
-        if conn and conn.is_connected():
-            cursor = conn.cursor()
-            try:
-                # Consulta de la tabla inventory
-                cursor.execute("SELECT ID, name, stock FROM inventory")
-                data = cursor.fetchall()
-                
-                for item in data:
-                    product_id, name, stock = item
-                    self.tree.insert('', END, values=(product_id, name, stock)) 
-
-            except mysql.connector.Error as err:
-                messagebox.showerror("Error de BD", f"Error al cargar inventario: {err}\nAsegúrate de tener la tabla 'inventory' con columnas ID, name y stock.")
-            finally:
-                cursor.close()
-                
-    def add_product(self):
-        """Abre el diálogo para agregar un nuevo producto."""
-        def refresh():
-            self.home_app.content_area.show_inventory_list() 
-
-        AddInventoryDialog(self.frame, self.home_app.db_conn, refresh)
-
-    # NUEVO: Lógica de Baja de Producto
-    def baja_producto(self):
-        producto_id = get_selected_item_id(self.tree)
-        if not producto_id:
-            return
-        
-        if messagebox.askyesno("Confirmar Baja", f"¿Estás seguro de que deseas eliminar el Producto con ID {producto_id}?"):
-            conn = self.home_app.db_conn
-            if conn and conn.is_connected():
-                cursor = conn.cursor()
-                try:
-                    cursor.execute("DELETE FROM inventory WHERE ID = %s", (producto_id,))
-                    conn.commit()
-                    messagebox.showinfo("Baja Exitosa", "Producto eliminado correctamente.")
-                    self.home_app.content_area.show_inventory_list() # Refresca la vista
-                except mysql.connector.Error as err:
-                    messagebox.showerror("Error de BD", f"Error al eliminar el producto: {err}")
-                finally:
-                    cursor.close()
-
-    # NUEVO: Lógica de Modificación de Producto (Estructura base)
-    def modificar_producto(self):
-        producto_id = get_selected_item_id(self.tree)
-        if not producto_id:
-            return
-
-        selected_item = self.tree.focus()
-        data = self.tree.item(selected_item, 'values')
-        
-        # Aquí se abriría el diálogo de Modificación real
-        messagebox.showinfo("Modificar Producto", f"Preparado para modificar el Producto con ID {producto_id}.\nDatos actuales: {data}")
-        # ModificarInventoryDialog(self.frame, self.home_app.db_conn, refresh, data) # Esto sería el paso futuro
-
-# =================================================================
-# MÓDULOS DE GESTIÓN RESTANTES (Finanzas, Marketing, RRHH) 
-# =================================================================
-
-class FinanzasView:
-    """Vista para el módulo de Finanzas, con tabla de transacciones central."""
-    def __init__(self, master_frame, home_app):
-        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=30, pady=5)
-        self.frame.grid(row=0, column=0, sticky="nswe")
-        self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(2, weight=1) # Fila de la tabla central
-        self.home_app = home_app 
-        
-        # Título de la vista
-        header_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
-        header_frame.grid(row=0, column=0, sticky="w", pady=(10, 10))
-        Label(header_frame, text="💰 Gestión de Finanzas", font=FONT_HEADING,
-              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).pack(side=LEFT)
-              
-        # Contenedor de Acciones (Diseño UNIFICADO)
-        actions_frame = Frame(self.frame, bg=COLOR_CARD_BG, padx=20, pady=10, relief=GROOVE, bd=1)
-        actions_frame.grid(row=1, column=0, sticky="ew", pady=(10, 20))
-        actions_frame.grid_columnconfigure((0, 1, 2), weight=1) # Ajustado a 3 columnas
-
-        # Botones de Finanzas
-        Button(actions_frame, text="➕ Registrar Ingreso", bg=COLOR_ACCENT, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.alta_ingreso).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-
-        Button(actions_frame, text="➖ Baja Ingreso/Gasto", bg=COLOR_ERROR, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.baja_ingreso_gasto).grid(row=0, column=1, padx=5, pady=5, sticky="ew") # CAMBIADO
-        
-        Button(actions_frame, text="⚙️ Modificar Transacción", bg=COLOR_ACCENT, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.modificar_transaccion).grid(row=0, column=2, padx=5, pady=5, sticky="ew") # CAMBIADO
-
-        # Área de Visualización (Tabla/Treeview) - MOVIDO A row=2
-        self.tree = ttk.Treeview(self.frame, columns=("ID", "Tipo", "Monto", "Fecha"), show='headings')
-        self.tree.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
-
-        # Definición de encabezados y anchos de columna
-        self.tree.heading("ID", text="ID", anchor=CENTER)
-        self.tree.heading("Tipo", text="Tipo")
-        self.tree.heading("Monto", text="Monto")
-        self.tree.heading("Fecha", text="Fecha")
-        
-        self.tree.column("ID", width=50, stretch=NO, anchor=CENTER)
-        self.tree.column("Tipo", width=100, stretch=YES, anchor=CENTER)
-        self.tree.column("Monto", width=100, stretch=YES, anchor=CENTER)
-        self.tree.column("Fecha", width=100, stretch=YES, anchor=CENTER)
-        
-        self.load_finance_data()
-
-    def load_finance_data(self):
-        """Carga datos de transacciones de Finanzas (Consulta REAL)."""
+    def load_data(self):
+        """Carga los datos de inventario desde la base de datos."""
         for item in self.tree.get_children():
             self.tree.delete(item)
             
@@ -197,266 +93,414 @@ class FinanzasView:
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                cursor.execute("SELECT id, type, amount, date FROM financial_movements")
-                data = cursor.fetchall()
-                
-                for item in data:
-                    self.tree.insert('', END, values=item) 
-
+                cursor.execute("SELECT ID, name, stock FROM inventory ORDER BY ID DESC")
+                for row in cursor.fetchall():
+                    self.tree.insert('', END, values=row)
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de BD", f"Error al cargar finanzas: {err}\nAsegúrate de que la tabla 'financial_movements' exista y tenga las columnas id, type, amount, date.")
+                messagebox.showerror("Error de BD", f"Error al cargar datos: {err}")
             finally:
                 cursor.close()
 
-    # Métodos de Lógica
-    def alta_ingreso(self):
-        """Abre un diálogo para registrar un nuevo ingreso/gasto."""
-        def refresh_finance_view():
-            self.home_app.content_area.show_finance_list() 
-        
-        AddFinanceDialog(self.frame, self.home_app.db_conn, refresh_finance_view)
+    # Lógica de AGREGAR
+    def agregar_item(self):
+        AddInventoryDialog(self.frame, self.home_app.db_conn, self.home_app.content_area.show_inventory_list)
 
-    # NUEVO: Lógica de Baja de Ingreso/Gasto
-    def baja_ingreso_gasto(self):
-        transaccion_id = get_selected_item_id(self.tree)
-        if not transaccion_id:
+    # Lógica de MODIFICAR (Implementación)
+    def modificar_item(self):
+        item_data = get_selected_item_data(self.tree) # Obtener todos los datos
+        if not item_data:
             return
+
+        # Abre el diálogo de Modificación
+        # item_data: (ID, name, stock)
+        EditInventoryDialog(
+            self.frame, 
+            self.home_app.db_conn, 
+            self.home_app.content_area.show_inventory_list, 
+            item_data
+        )
+
+    # Lógica de BAJA
+    def baja_item(self):
+        item_data = get_selected_item_data(self.tree)
+        if not item_data:
+            return
+        item_id = item_data[0] # El ID es el primer elemento
         
-        if messagebox.askyesno("Confirmar Baja", f"¿Estás seguro de que deseas eliminar la Transacción con ID {transaccion_id}?"):
+        if messagebox.askyesno("Confirmar Eliminación", f"¿Estás seguro de que deseas eliminar el Item con ID {item_id}?"):
             conn = self.home_app.db_conn
             if conn and conn.is_connected():
                 cursor = conn.cursor()
                 try:
-                    cursor.execute("DELETE FROM financial_movements WHERE id = %s", (transaccion_id,))
+                    cursor.execute("DELETE FROM inventory WHERE ID = %s", (item_id,))
+                    conn.commit()
+                    messagebox.showinfo("Baja Exitosa", "Item eliminado correctamente.")
+                    self.home_app.content_area.show_inventory_list() # Refresca la vista
+                except mysql.connector.Error as err:
+                    messagebox.showerror("Error de BD", f"Error al eliminar: {err}")
+                finally:
+                    cursor.close()
+                    
+# =================================================================
+# VISTAS PRINCIPALES (Finanzas)
+# =================================================================
+
+class FinanzasView:
+    """Vista para la gestión de Finanzas."""
+    def __init__(self, master_frame, home_app):
+        self.home_app = home_app
+        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=10, pady=10)
+        self.frame.grid(row=0, column=0, sticky="nswe")
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(1, weight=1)
+        
+        Label(self.frame, text="Gestión de Finanzas", font=FONT_HEADING, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).grid(row=0, column=0, sticky="w", pady=10, padx=10)
+        
+        self._setup_treeview()
+        self._setup_buttons()
+        self.load_data()
+
+    def _setup_treeview(self):
+        # Configuración del Treeview
+        self.tree = ttk.Treeview(self.frame, columns=('ID', 'Tipo', 'Monto', 'Fecha', 'Descripción'), show='headings')
+        self.tree.grid(row=1, column=0, sticky='nswe', padx=10, pady=5)
+        
+        vsb = ttk.Scrollbar(self.frame, orient="vertical", command=self.tree.yview)
+        vsb.grid(row=1, column=1, sticky='nsw', pady=5)
+        self.tree.configure(yscrollcommand=vsb.set)
+
+        self.tree.heading('ID', text='ID', anchor=CENTER)
+        self.tree.heading('Tipo', text='Tipo', anchor=CENTER)
+        self.tree.heading('Monto', text='Monto', anchor=CENTER)
+        self.tree.heading('Fecha', text='Fecha', anchor=CENTER)
+        self.tree.heading('Descripción', text='Descripción', anchor=W)
+
+        self.tree.column('ID', width=50, anchor=CENTER)
+        self.tree.column('Tipo', width=80, anchor=CENTER)
+        self.tree.column('Monto', width=100, anchor=CENTER)
+        self.tree.column('Fecha', width=100, anchor=CENTER)
+        self.tree.column('Descripción', width=300, anchor=W)
+
+    def _setup_buttons(self):
+        button_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
+        button_frame.grid(row=2, column=0, sticky="w", padx=10, pady=10)
+        
+        # Botón AGREGAR
+        Button(button_frame, text="➕ Agregar", command=self.agregar_registro, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+
+        # Botón MODIFICAR (Nuevo)
+        Button(button_frame, text="✏️ Modificar", command=self.modificar_registro, 
+               bg='#f39c12', fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+               
+        # Botón ELIMINAR/BAJA
+        Button(button_frame, text="🗑️ Eliminar", command=self.baja_registro, 
+               bg=COLOR_ERROR, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+        
+    def load_data(self):
+        """Carga los datos de transacciones financieras desde la base de datos."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        conn = self.home_app.db_conn
+        if conn and conn.is_connected():
+            cursor = conn.cursor()
+            try:
+                
+                query = "SELECT id, type, amount, description, date FROM financial_movements" 
+                cursor.execute(query)# Nota: transaction_id, type, amount, transaction_date, description
+                
+                for row in cursor.fetchall():
+                    # Formatear el monto con 2 decimales
+                    formatted_row = (row[0], row[1], f"${row[2]:.2f}", str(row[3]), row[4])
+                    self.tree.insert('', END, values=formatted_row)
+            except mysql.connector.Error as err:
+                messagebox.showerror("Error de BD", f"Error al cargar datos: {err}")
+            finally:
+                cursor.close()
+
+    # Lógica de AGREGAR
+    def agregar_registro(self):
+        AddFinanceDialog(self.frame, self.home_app.db_conn, self.home_app.content_area.show_finance_list)
+        
+    # Lógica de MODIFICAR (Implementación)
+    def modificar_registro(self):
+        item_data = get_selected_item_data(self.tree) # Obtener todos los datos
+        if not item_data:
+            return
+
+        # Abre el diálogo de Modificación
+        # item_data: (transaction_id, type, amount, transaction_date, description)
+        # Nota: item_data[2] viene con el símbolo '$' de la tabla, debemos pasarlo limpio
+        # Reconstruimos la tupla de datos limpia para el diálogo
+        clean_amount = item_data[2].replace('$', '')
+        clean_data = (item_data[0], item_data[1], clean_amount, item_data[3], item_data[4])
+        
+        EditFinanceDialog(
+            self.frame, 
+            self.home_app.db_conn, 
+            self.home_app.content_area.show_finance_list, 
+            clean_data
+        )
+
+    # Lógica de BAJA
+    def baja_registro(self):
+        item_data = get_selected_item_data(self.tree)
+        if not item_data:
+            return
+        item_id = item_data[0] # El ID es el primer elemento
+        
+        if messagebox.askyesno("Confirmar Eliminación", f"¿Estás seguro de que deseas eliminar la Transacción con ID {item_id}?"):
+            conn = self.home_app.db_conn
+            if conn and conn.is_connected():
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("DELETE FROM financial_transactions WHERE transaction_id = %s", (item_id,))
                     conn.commit()
                     messagebox.showinfo("Baja Exitosa", "Transacción eliminada correctamente.")
                     self.home_app.content_area.show_finance_list() # Refresca la vista
                 except mysql.connector.Error as err:
-                    messagebox.showerror("Error de BD", f"Error al eliminar la transacción: {err}")
+                    messagebox.showerror("Error de BD", f"Error al eliminar: {err}")
                 finally:
                     cursor.close()
-    
-    # NUEVO: Lógica de Modificación de Transacción (Estructura base)
-    def modificar_transaccion(self):
-        transaccion_id = get_selected_item_id(self.tree)
-        if not transaccion_id:
-            return
 
-        selected_item = self.tree.focus()
-        data = self.tree.item(selected_item, 'values')
-        
-        # Aquí se abriría el diálogo de Modificación real
-        messagebox.showinfo("Modificar Transacción", f"Preparado para modificar la Transacción con ID {transaccion_id}.\nDatos actuales: {data}")
-
+# =================================================================
+# VISTAS PRINCIPALES (Marketing)
+# =================================================================
 
 class MarketingView:
-    """Vista para el módulo de Marketing, con tabla de campañas central."""
+    """Vista para la gestión de Marketing."""
     def __init__(self, master_frame, home_app):
-        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=30, pady=5)
+        self.home_app = home_app
+        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=10, pady=10)
         self.frame.grid(row=0, column=0, sticky="nswe")
         self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(2, weight=1) # Fila de la tabla central
-        self.home_app = home_app 
+        self.frame.grid_rowconfigure(1, weight=1)
         
-        header_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
-        header_frame.grid(row=0, column=0, sticky="w", pady=(10, 10))
-        Label(header_frame, text="📈 Gestión de Marketing", font=FONT_HEADING,
-              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).pack(side=LEFT)
-              
-        # Contenedor de Acciones (Diseño UNIFICADO)
-        actions_frame = Frame(self.frame, bg=COLOR_CARD_BG, padx=20, pady=10, relief=GROOVE, bd=1)
-        actions_frame.grid(row=1, column=0, sticky="ew", pady=(10, 20))
-        actions_frame.grid_columnconfigure((0, 1, 2), weight=1) # Ajustado a 3 columnas
-
-        # Botones de Marketing 
-        Button(actions_frame, text="➕ Alta Campaña", bg=COLOR_ACCENT, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.alta_campana).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-
-        Button(actions_frame, text="➖ Baja Campaña", bg=COLOR_ERROR, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.baja_campana).grid(row=0, column=1, padx=5, pady=5, sticky="ew") # CAMBIADO
-
-        Button(actions_frame, text="⚙️ Modificar Campaña", bg=COLOR_ACCENT, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.modificar_campana).grid(row=0, column=2, padx=5, pady=5, sticky="ew") # CAMBIADO
+        Label(self.frame, text="Gestión de Marketing", font=FONT_HEADING, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).grid(row=0, column=0, sticky="w", pady=10, padx=10)
         
-        # Área de Visualización (Tabla/Treeview) - MOVIDO A row=2
-        self.tree = ttk.Treeview(self.frame, columns=("ID", "Campaña", "Presupuesto", "Estado"), show='headings')
-        self.tree.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
+        self._setup_treeview()
+        self._setup_buttons()
+        self.load_data()
 
-        # Definición de encabezados y anchos de columna
-        self.tree.heading("ID", text="ID", anchor=CENTER)
-        self.tree.heading("Campaña", text="Nombre de Campaña")
-        self.tree.heading("Presupuesto", text="Presupuesto")
-        self.tree.heading("Estado", text="Estado")
+    def _setup_treeview(self):
+        # Configuración del Treeview
+        self.tree = ttk.Treeview(self.frame, columns=('ID', 'Nombre', 'Objetivo', 'Inicio', 'Fin', 'Presupuesto', 'Estado'), show='headings')
+        self.tree.grid(row=1, column=0, sticky='nswe', padx=10, pady=5)
         
-        self.tree.column("ID", width=50, stretch=NO, anchor=CENTER)
-        self.tree.column("Campaña", width=250, stretch=YES)
-        self.tree.column("Presupuesto", width=100, stretch=YES, anchor=CENTER)
-        self.tree.column("Estado", width=100, stretch=YES, anchor=CENTER)
+        vsb = ttk.Scrollbar(self.frame, orient="vertical", command=self.tree.yview)
+        vsb.grid(row=1, column=1, sticky='nsw', pady=5)
+        self.tree.configure(yscrollcommand=vsb.set)
 
-        self.load_marketing_data()
+        self.tree.heading('ID', text='ID', anchor=CENTER)
+        self.tree.heading('Nombre', text='Nombre', anchor=CENTER)
+        self.tree.heading('Objetivo', text='Objetivo', anchor=W)
+        self.tree.heading('Inicio', text='Inicio', anchor=CENTER)
+        self.tree.heading('Fin', text='Fin', anchor=CENTER)
+        self.tree.heading('Presupuesto', text='Presupuesto', anchor=CENTER)
+        self.tree.heading('Estado', text='Estado', anchor=CENTER)
 
-    def load_marketing_data(self):
-        """Carga datos de campañas de Marketing (Consulta REAL)."""
+        self.tree.column('ID', width=50, anchor=CENTER)
+        self.tree.column('Nombre', width=150, anchor=W)
+        self.tree.column('Objetivo', width=200, anchor=W)
+        self.tree.column('Inicio', width=80, anchor=CENTER)
+        self.tree.column('Fin', width=80, anchor=CENTER)
+        self.tree.column('Presupuesto', width=100, anchor=CENTER)
+        self.tree.column('Estado', width=100, anchor=CENTER)
+
+    def _setup_buttons(self):
+        button_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
+        button_frame.grid(row=2, column=0, sticky="w", padx=10, pady=10)
+        
+        # Botón AGREGAR
+        Button(button_frame, text="➕ Agregar", command=self.agregar_campana, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+
+        # Botón MODIFICAR (Nuevo)
+        Button(button_frame, text="✏️ Modificar", command=self.modificar_campana, 
+               bg='#f39c12', fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+               
+        # Botón ELIMINAR/BAJA
+        Button(button_frame, text="🗑️ Eliminar", command=self.baja_campana, 
+               bg=COLOR_ERROR, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+        
+    def load_data(self):
+        """Carga los datos de campañas de marketing desde la base de datos."""
         for item in self.tree.get_children():
             self.tree.delete(item)
-        
+            
         conn = self.home_app.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                cursor.execute("SELECT campaign_id, name, budget, status FROM campaigns")
-                data = cursor.fetchall()
-                
-                for item in data:
-                    self.tree.insert('', END, values=item) 
-
+                # Nota: campaign_id, name, objective, start_date, end_date, budget, status
+                cursor.execute("SELECT campaign_id, name, objective, start_date, end_date, budget, status FROM campaigns ORDER BY campaign_id DESC")
+                for row in cursor.fetchall():
+                    # Formatear el presupuesto y asegurarse que las fechas sean strings
+                    budget = f"${row[5]:.2f}" if row[5] is not None else "$0.00"
+                    start_date = str(row[3])
+                    end_date = str(row[4]) if row[4] else ''
+                    
+                    formatted_row = (row[0], row[1], row[2], start_date, end_date, budget, row[6])
+                    self.tree.insert('', END, values=formatted_row)
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de BD", f"Error al cargar campañas: {err}\nAsegúrate de que la tabla 'campaigns' exista y tenga las columnas campaign_id, name, budget, status.")
+                messagebox.showerror("Error de BD", f"Error al cargar datos: {err}")
             finally:
                 cursor.close()
 
-    # Métodos de Lógica
-    def alta_campana(self):
-        """Abre un diálogo para registrar una nueva campaña."""
-        def refresh_marketing_view():
-            self.home_app.content_area.show_marketing_list() 
+    # Lógica de AGREGAR
+    def agregar_campana(self):
+        AddMarketingCampaignDialog(self.frame, self.home_app.db_conn, self.home_app.content_area.show_marketing_list)
         
-        AddMarketingCampaignDialog(self.frame, self.home_app.db_conn, refresh_marketing_view)
-
-    # NUEVO: Lógica de Baja de Campaña
-    def baja_campana(self):
-        campana_id = get_selected_item_id(self.tree)
-        if not campana_id:
+    # Lógica de MODIFICAR (Implementación)
+    def modificar_campana(self):
+        item_data = get_selected_item_data(self.tree) # Obtener todos los datos
+        if not item_data:
             return
+            
+        # Reconstruimos la tupla de datos limpia (quitando el '$' del presupuesto)
+        clean_budget = item_data[5].replace('$', '')
+        # item_data: (ID, Nombre, Objetivo, Inicio, Fin, Presupuesto, Estado)
+        clean_data = (item_data[0], item_data[1], item_data[2], item_data[3], item_data[4], clean_budget, item_data[6])
+
+        # Abre el diálogo de Modificación
+        EditMarketingCampaignDialog(
+            self.frame, 
+            self.home_app.db_conn, 
+            self.home_app.content_area.show_marketing_list, 
+            clean_data
+        )
+
+    # Lógica de BAJA
+    def baja_campana(self):
+        item_data = get_selected_item_data(self.tree)
+        if not item_data:
+            return
+        item_id = item_data[0] # El ID es el primer elemento
         
-        if messagebox.askyesno("Confirmar Baja", f"¿Estás seguro de que deseas eliminar la Campaña con ID {campana_id}?"):
+        if messagebox.askyesno("Confirmar Eliminación", f"¿Estás seguro de que deseas eliminar la Campaña con ID {item_id}?"):
             conn = self.home_app.db_conn
             if conn and conn.is_connected():
                 cursor = conn.cursor()
                 try:
-                    cursor.execute("DELETE FROM campaigns WHERE campaign_id = %s", (campana_id,))
+                    cursor.execute("DELETE FROM campaigns WHERE campaign_id = %s", (item_id,))
                     conn.commit()
                     messagebox.showinfo("Baja Exitosa", "Campaña eliminada correctamente.")
                     self.home_app.content_area.show_marketing_list() # Refresca la vista
                 except mysql.connector.Error as err:
-                    messagebox.showerror("Error de BD", f"Error al eliminar la campaña: {err}")
+                    messagebox.showerror("Error de BD", f"Error al eliminar: {err}")
                 finally:
                     cursor.close()
-
-    # NUEVO: Lógica de Modificación de Campaña (Estructura base)
-    def modificar_campana(self):
-        campana_id = get_selected_item_id(self.tree)
-        if not campana_id:
-            return
-
-        selected_item = self.tree.focus()
-        data = self.tree.item(selected_item, 'values')
-        
-        # Aquí se abriría el diálogo de Modificación real
-        messagebox.showinfo("Modificar Campaña", f"Preparado para modificar la Campaña con ID {campana_id}.\nDatos actuales: {data}")
-
+                    
+# =================================================================
+# VISTAS PRINCIPALES (RRHH)
+# =================================================================
 
 class RRHHView:
-    """Vista para el módulo de Recursos Humanos, con tabla de empleados central."""
+    """Vista para la gestión de Recursos Humanos."""
     def __init__(self, master_frame, home_app):
-        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=30, pady=5)
+        self.home_app = home_app
+        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=10, pady=10)
         self.frame.grid(row=0, column=0, sticky="nswe")
         self.frame.grid_columnconfigure(0, weight=1)
-        self.frame.grid_rowconfigure(2, weight=1) # Fila de la tabla central
-        self.home_app = home_app 
+        self.frame.grid_rowconfigure(1, weight=1)
         
-        header_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
-        header_frame.grid(row=0, column=0, sticky="w", pady=(10, 10))
-        Label(header_frame, text="🧑‍💼 Gestión de Recursos Humanos", font=FONT_HEADING,
-              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).pack(side=LEFT)
-
-        # Contenedor de Acciones (Diseño UNIFICADO)
-        actions_frame = Frame(self.frame, bg=COLOR_CARD_BG, padx=20, pady=10, relief=GROOVE, bd=1)
-        actions_frame.grid(row=1, column=0, sticky="ew", pady=(10, 20))
-        actions_frame.grid_columnconfigure((0, 1, 2), weight=1) # Ajustado a 3 columnas
+        Label(self.frame, text="Gestión de Recursos Humanos", font=FONT_HEADING, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).grid(row=0, column=0, sticky="w", pady=10, padx=10)
         
-        # Botones de RRHH
-        Button(actions_frame, text="👥 Alta Empleado", bg=COLOR_ACCENT, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.alta_empleado).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        self._setup_treeview()
+        self._setup_buttons()
+        self.load_data()
 
-        Button(actions_frame, text="➖ Baja Empleado", bg=COLOR_ERROR, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.baja_empleado).grid(row=0, column=1, padx=5, pady=5, sticky="ew") # CAMBIADO
-
-        Button(actions_frame, text="⚙️ Modificar Empleado", bg=COLOR_ACCENT, 
-               fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT, 
-               command=self.modificar_empleado).grid(row=0, column=2, padx=5, pady=5, sticky="ew") # CAMBIADO
-
-        # Área de Visualización (Tabla/Treeview) - MOVIDO A row=2
-        self.tree = ttk.Treeview(self.frame, columns=("ID", "Nombre", "Sector", "Salario"), show='headings')
-        self.tree.grid(row=2, column=0, sticky="nsew", padx=10, pady=10)
-
-        # Definición de encabezados y anchos de columna
-        self.tree.heading("ID", text="ID", anchor=CENTER)
-        self.tree.heading("Nombre", text="Nombre Completo")
-        self.tree.heading("Sector", text="Sector")
-        self.tree.heading("Salario", text="Salario")
+    def _setup_treeview(self):
+        # Configuración del Treeview
+        columns = ('ID', 'Nombre', 'Apellido', 'Contratación', 'Salario', 'Posición', 'Activo')
+        self.tree = ttk.Treeview(self.frame, columns=columns, show='headings')
+        self.tree.grid(row=1, column=0, sticky='nswe', padx=10, pady=5)
         
-        self.tree.column("ID", width=50, stretch=NO, anchor=CENTER)
-        self.tree.column("Nombre", width=200, stretch=YES)
-        self.tree.column("Sector", width=100, stretch=YES, anchor=CENTER)
-        self.tree.column("Salario", width=100, stretch=YES, anchor=CENTER)
-        
-        self.load_employee_data()
+        vsb = ttk.Scrollbar(self.frame, orient="vertical", command=self.tree.yview)
+        vsb.grid(row=1, column=1, sticky='nsw', pady=5)
+        self.tree.configure(yscrollcommand=vsb.set)
 
-    def load_employee_data(self):
-        """Carga datos de empleados de RRHH (Consulta REAL)."""
+        self.tree.heading('ID', text='ID', anchor=CENTER)
+        self.tree.heading('Nombre', text='Nombre', anchor=W)
+        self.tree.heading('Apellido', text='Apellido', anchor=W)
+        self.tree.heading('Contratación', text='Contratación', anchor=CENTER)
+        self.tree.heading('Salario', text='Salario', anchor=CENTER)
+        self.tree.heading('Posición', text='Posición', anchor=W)
+        self.tree.heading('Activo', text='Activo', anchor=CENTER)
+
+        self.tree.column('ID', width=50, anchor=CENTER)
+        self.tree.column('Nombre', width=120, anchor=W)
+        self.tree.column('Apellido', width=120, anchor=W)
+        self.tree.column('Contratación', width=100, anchor=CENTER)
+        self.tree.column('Salario', width=100, anchor=CENTER)
+        self.tree.column('Posición', width=150, anchor=W)
+        self.tree.column('Activo', width=60, anchor=CENTER)
+
+
+    def _setup_buttons(self):
+        button_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
+        button_frame.grid(row=2, column=0, sticky="w", padx=10, pady=10)
+        
+        # Botón AGREGAR
+        Button(button_frame, text="➕ Alta Empleado", command=self.alta_empleado, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+
+        # Botón MODIFICAR (Nuevo)
+        Button(button_frame, text="✏️ Modificar", command=self.modificar_empleado, 
+               bg='#f39c12', fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+               
+        # Botón ELIMINAR/BAJA
+        # Usamos baja para reflejar una baja lógica (is_active = FALSE) o física (DELETE)
+        Button(button_frame, text="🗑️ Baja Empleado", command=self.baja_empleado, 
+               bg=COLOR_ERROR, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(side=LEFT, padx=5)
+
+    def load_data(self):
+        """Carga los datos de empleados desde la base de datos."""
         for item in self.tree.get_children():
             self.tree.delete(item)
-        
+            
         conn = self.home_app.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                # Usando CONCAT para Nombre Completo y 'position' para 'Sector'
-                query = """
-                SELECT 
-                    employee_id, 
-                    CONCAT(first_name, ' ', last_name), 
-                    position, 
-                    salary 
-                FROM employees
-                """
+                # employee_id, first_name, last_name, hire_date, salary, position, is_active
+                query = "SELECT employee_id, first_name, last_name, hire_date, salary, position, is_active FROM employees ORDER BY employee_id DESC"
                 cursor.execute(query)
-                data = cursor.fetchall()
-                
-                for item in data:
-                    self.tree.insert('', END, values=item) 
-
+                for row in cursor.fetchall():
+                    # Formatear Salario y estado Activo
+                    salary = f"${row[4]:.2f}" if row[4] is not None else "$0.00"
+                    is_active = "Sí" if row[6] else "No"
+                    
+                    formatted_row = (row[0], row[1], row[2], str(row[3]), salary, row[5], is_active)
+                    self.tree.insert('', END, values=formatted_row)
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de BD", f"Error al cargar empleados: {err}\nAsegúrate de que la tabla 'employees' exista y tenga las columnas correctas.")
+                messagebox.showerror("Error de BD", f"Error al cargar datos: {err}")
             finally:
                 cursor.close()
 
-    # Métodos de Lógica
+    # Lógica de ALTA/AGREGAR
     def alta_empleado(self):
-        """Abre un diálogo para registrar un nuevo empleado."""
-        def refresh_rrhh_view():
-            self.home_app.content_area.show_rrhh_list() 
-        
-        AddEmployeeDialog(self.frame, self.home_app.db_conn, refresh_rrhh_view)
+        AddEmployeeDialog(self.frame, self.home_app.db_conn, self.home_app.content_area.show_rrhh_list)
 
-    # NUEVO: Lógica de Baja de Empleado
+    # Lógica de BAJA
     def baja_empleado(self):
-        empleado_id = get_selected_item_id(self.tree)
-        if not empleado_id:
+        item_data = get_selected_item_data(self.tree)
+        if not item_data:
             return
+        empleado_id = item_data[0]
         
         if messagebox.askyesno("Confirmar Baja", f"¿Estás seguro de que deseas eliminar el Empleado con ID {empleado_id}?"):
             conn = self.home_app.db_conn
             if conn and conn.is_connected():
                 cursor = conn.cursor()
                 try:
-                    cursor.execute("DELETE FROM employees WHERE employee_id = %s", (empleado_id,))
+                    # Baja lógica (cambiar is_active a 0) es preferible a DELETE
+                    # Pero basándome en tu snippet anterior que usaba DELETE, mantengo la eliminación física
+                    cursor.execute("DELETE FROM employees WHERE employee_id = %s", (empleado_id,)) 
                     conn.commit()
                     messagebox.showinfo("Baja Exitosa", "Empleado eliminado correctamente.")
                     self.home_app.content_area.show_rrhh_list() # Refresca la vista
@@ -465,14 +509,23 @@ class RRHHView:
                 finally:
                     cursor.close()
 
-    # NUEVO: Lógica de Modificación de Empleado (Estructura base)
+    # Lógica de MODIFICACIÓN (Implementación)
     def modificar_empleado(self):
-        empleado_id = get_selected_item_id(self.tree)
-        if not empleado_id:
+        item_data = get_selected_item_data(self.tree) # Obtener todos los datos
+        if not item_data:
             return
 
-        selected_item = self.tree.focus()
-        data = self.tree.item(selected_item, 'values')
+        # Reconstruimos la tupla de datos limpia (quitando el '$' del salario y estado activo)
+        clean_salary = item_data[4].replace('$', '')
         
-        # Aquí se abriría el diálogo de Modificación real
-        messagebox.showinfo("Modificar Empleado", f"Preparado para modificar el Empleado con ID {empleado_id}.\nDatos actuales: {data}")
+        # item_data: (ID, first_name, last_name, hire_date, salary, position, is_active_str)
+        # Solo pasamos los primeros 6 elementos que se pueden editar
+        clean_data = (item_data[0], item_data[1], item_data[2], item_data[3], clean_salary, item_data[5])
+        
+        # Abre el diálogo de Modificación.
+        EditEmployeeDialog(
+            self.frame, 
+            self.home_app.db_conn, 
+            self.home_app.content_area.show_rrhh_list, # Función para refrescar
+            clean_data
+        )

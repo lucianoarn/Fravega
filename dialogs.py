@@ -2,16 +2,16 @@
 from tkinter import Toplevel, Frame, Label, Entry, Button, messagebox, FLAT, StringVar, OptionMenu
 import mysql.connector
 from datetime import datetime
-# Importar constantes
-from constants import *
+# Importar constantes (Asegúrate de que constants.py existe y tiene estas variables)
+from constants import COLOR_ACCENT, COLOR_BG_WHITE, FONT_MAIN, FONT_SUBHEADING, FONT_HEADING
 
 # =================================================================
-# DIÁLOGOS DE AGREGAR (Existente)
+# DIÁLOGOS DE AGREGAR (Estructuras de ejemplo basadas en tus snippets)
 # =================================================================
 
 class AddUserDialog(Toplevel):
-    # ... (código AddUserDialog existente) ...
-    def __init__(self, master, db_conn, refresh_callback):
+    """Diálogo para agregar un nuevo usuario (gerente/admin)."""
+    def __init__(self, master, db_conn, refresh_callback=None):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
@@ -29,95 +29,94 @@ class AddUserDialog(Toplevel):
 
         Label(main_frame, text="Nuevo Empleado", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
-        Label(main_frame, text="Usuario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.username_entry = Entry(main_frame, font=FONT_MAIN)
-        self.username_entry.pack(fill='x', pady=(0, 10))
+        # Usuario
+        Label(main_frame, text="Usuario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w')
+        self.user_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.user_entry.pack(fill='x', pady=2)
 
-        Label(main_frame, text="Contraseña:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.password_entry = Entry(main_frame, font=FONT_MAIN, show='*')
-        self.password_entry.pack(fill='x', pady=(0, 10))
+        # Contraseña
+        Label(main_frame, text="Contraseña:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w')
+        self.pass_entry = Entry(main_frame, font=FONT_MAIN, show="*", width=40)
+        self.pass_entry.pack(fill='x', pady=2)
         
-        Button(main_frame, text="Guardar Usuario", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.save_user).pack(pady=15)
+        # Botón
+        Button(main_frame, text="Guardar Usuario", command=self.save_user, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
 
     def save_user(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-        
-        if not username or not password:
-            messagebox.showerror("Error", "Debe completar ambos campos.")
-            return
+        # Lógica de guardar usuario
+        username = self.user_entry.get()
+        password = self.pass_entry.get()
 
+        if not all([username, password]):
+            messagebox.showerror("Error", "Debe completar todos los campos.")
+            return
+            
         conn = self.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                check_query = "SELECT username FROM users WHERE username = %s"
-                cursor.execute(check_query, (username,))
-                if cursor.fetchone():
-                    messagebox.showerror("Error", "El nombre de usuario ya existe.")
-                    return
-
-                insert_query = "INSERT INTO users (username, password, sector_id) VALUES (%s, %s, NULL)"
-                cursor.execute(insert_query, (username, password))
+                # Nota: En una app real, la contraseña debe hashearse.
+                insert_query = "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)"
+                # Asumimos que el usuario que se agrega es un empleado regular o con un rol específico.
+                cursor.execute(insert_query, (username, password, 'employee'))
                 conn.commit()
-
-                messagebox.showinfo("Éxito", f"Usuario '{username}' registrado exitosamente.")
-                self.refresh_callback()
+                messagebox.showinfo("Éxito", "Usuario agregado correctamente.")
+                if self.refresh_callback:
+                    self.refresh_callback() 
                 self.destroy()
-
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al registrar: {err}")
+                # Manejar error si el usuario ya existe (usando UNIQUE INDEX)
+                messagebox.showerror("Error de BD", f"Error al agregar usuario: {err}")
             finally:
                 cursor.close()
-        else:
-            messagebox.showerror("Error", "No hay conexión activa a la base de datos.")
 
+# ---
 
 class AddInventoryDialog(Toplevel):
-    # ... (código AddInventoryDialog existente) ...
+    """Diálogo para agregar un nuevo item de inventario."""
     def __init__(self, master, db_conn, refresh_callback):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.title("Agregar Nuevo Producto")
+        self.title("Agregar Item a Inventario")
         self.geometry("400x250")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
+        self.transient(master); self.grab_set(); self.focus_force()
         self.create_widgets()
-
+        
     def create_widgets(self):
         main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Detalles del Producto", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Nuevo Item", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
-        Label(main_frame, text="Nombre del Producto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.name_entry = Entry(main_frame, font=FONT_MAIN)
-        self.name_entry.pack(fill='x', pady=(0, 10))
+        # Nombre
+        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.name_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.name_entry.pack(fill='x', pady=2)
 
-        Label(main_frame, text="Cantidad Inicial:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.stock_entry = Entry(main_frame, font=FONT_MAIN)
-        self.stock_entry.pack(fill='x', pady=(0, 10))
-        
-        Button(main_frame, text="Guardar Producto", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.save_product).pack(pady=15)
+        # Stock
+        Label(main_frame, text="Stock:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.stock_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.stock_entry.pack(fill='x', pady=2)
 
-    def save_product(self):
+        # Botón
+        Button(main_frame, text="Guardar Item", command=self.save_item, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
+    def save_item(self):
         name = self.name_entry.get()
         stock_str = self.stock_entry.get()
-        
-        if not name or not stock_str:
+
+        if not all([name, stock_str]):
             messagebox.showerror("Error", "Debe completar todos los campos.")
             return
 
         try:
             stock = int(stock_str)
-            if stock < 0: raise ValueError
         except ValueError:
-            messagebox.showerror("Error", "La cantidad debe ser un número entero positivo.")
+            messagebox.showerror("Error", "El Stock debe ser un número entero válido.")
             return
 
         conn = self.db_conn
@@ -128,116 +127,109 @@ class AddInventoryDialog(Toplevel):
                 cursor.execute(insert_query, (name, stock))
                 conn.commit()
 
-                messagebox.showinfo("Éxito", f"Producto '{name}' agregado a inventario.")
+                messagebox.showinfo("Éxito", "Item de inventario agregado correctamente.")
                 self.refresh_callback()
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al registrar producto: {err}\nAsegúrate de tener creada la tabla 'inventory' con las columnas ID, name y stock.")
+                messagebox.showerror("Error de BD", f"Error al guardar: {err}")
             finally:
                 cursor.close()
-        else:
-            messagebox.showerror("Error", "No hay conexión activa a la base de datos.")
+
+# ---
 
 class AddFinanceDialog(Toplevel):
-    # ... (código AddFinanceDialog existente) ...
+    """Diálogo para agregar una nueva transacción financiera."""
     def __init__(self, master, db_conn, refresh_callback):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.title("Registrar Nuevo Ingreso/Gasto")
-        self.geometry("450x400")
+        self.title("Agregar Transacción")
+        self.geometry("500x450")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
+        self.transient(master); self.grab_set(); self.focus_force()
         self.create_widgets()
-
-    
 
     def create_widgets(self):
         main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Nuevo Movimiento Financiero", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Nueva Transacción", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
-        # Campo Monto
-        Label(main_frame, text="Monto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.monto_entry = Entry(main_frame, font=FONT_MAIN)
-        self.monto_entry.pack(fill='x', pady=(0, 10))
+        # Tipo
+        Label(main_frame, text="Tipo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.type_var = StringVar(self)
+        self.type_var.set("Ingreso") 
+        self.type_menu = OptionMenu(main_frame, self.type_var, "Ingreso", "Egreso")
+        self.type_menu.config(bg=COLOR_BG_WHITE, font=FONT_MAIN)
+        self.type_menu.pack(fill='x', pady=2)
 
-        # Campo Descripción
-        Label(main_frame, text="Descripción:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.desc_entry = Entry(main_frame, font=FONT_MAIN)
-        self.desc_entry.pack(fill='x', pady=(0, 10))
+        # Monto
+        Label(main_frame, text="Monto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.amount_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.amount_entry.pack(fill='x', pady=2)
+
+        # Fecha (YYYY-MM-DD)
+        Label(main_frame, text="Fecha (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        self.date_entry.pack(fill='x', pady=2)
+
+        # Descripción
+        Label(main_frame, text="Descripción:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.desc_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.desc_entry.pack(fill='x', pady=2)
+
+        # Botón
+        Button(main_frame, text="Guardar Transacción", command=self.save_transaction, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
+    def save_transaction(self):
+        trans_type = self.type_var.get()
+        amount_str = self.amount_entry.get()
+        date_str = self.date_entry.get()
+        desc = self.desc_entry.get()
         
-        # Campo Tipo (Para simular si es Ingreso o Gasto) - Simple ejemplo
-        Label(main_frame, text="Tipo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.tipo_var = StringVar(self)
-        self.tipo_var.set("Ingreso") # Opción predeterminada
-        opciones_tipo = ["Ingreso", "Gasto"]
-        tipo_menu = OptionMenu(main_frame, self.tipo_var, *opciones_tipo)
-        tipo_menu.config(font=FONT_MAIN, bg=COLOR_BG_WHITE)
-        tipo_menu.pack(fill='x', pady=(0, 10))
-
-
-        Button(main_frame, text="Guardar Movimiento", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.save_movement).pack(pady=15)
-
-    def save_movement(self):
-        monto_str = self.monto_entry.get()
-        descripcion = self.desc_entry.get()
-        tipo = self.tipo_var.get()
-        
-        if not monto_str or not descripcion:
+        if not all([trans_type, amount_str, date_str, desc]):
             messagebox.showerror("Error", "Debe completar todos los campos.")
             return
 
         try:
-            monto = float(monto_str)
-            if monto <= 0: raise ValueError
-            # Si es Gasto, el monto se registra como negativo
-            if tipo == "Gasto":
-                monto = -abs(monto) 
+            amount = float(amount_str)
+            datetime.strptime(date_str, '%Y-%m-%d')
         except ValueError:
-            messagebox.showerror("Error", "El monto debe ser un número positivo.")
+            messagebox.showerror("Error", "El monto debe ser un número válido y la fecha debe estar en formato YYYY-MM-DD.")
             return
 
-        # -------------------------------------------------------------
-        # LÓGICA DE DB ADAPTADA (similar a tu Login/dialogs)
-        # -------------------------------------------------------------
         conn = self.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                # Nota: Necesitarás crear la tabla 'financial_movements' en user_db.sql
-                insert_query = "INSERT INTO financial_movements (type, amount, description, date) VALUES (%s, %s, %s, CURDATE())"
-                
-                # 'tipo' se usa para la descripción, 'monto' (ya negativo si es gasto) se usa para el valor.
-                cursor.execute(insert_query, (tipo, monto, descripcion)) 
+                insert_query = "INSERT INTO financial_transactions (type, amount, transaction_date, description) VALUES (%s, %s, %s, %s)"
+                cursor.execute(insert_query, (trans_type, amount, date_str, desc))
                 conn.commit()
 
-                messagebox.showinfo("Éxito", f"{tipo} '{descripcion}' registrado correctamente.")
+                messagebox.showinfo("Éxito", "Transacción agregada correctamente.")
                 self.refresh_callback()
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al registrar: {err}\nATENCIÓN: ¿Existe la tabla 'financial_movements' en user_db?")
+                messagebox.showerror("Error de BD", f"Error al guardar: {err}")
             finally:
                 cursor.close()
 
+# ---
+
 class AddMarketingCampaignDialog(Toplevel):
-    # ... (código AddMarketingCampaignDialog existente - Se eliminó la duplicidad) ...
+    """Diálogo para agregar una nueva campaña de marketing."""
     def __init__(self, master, db_conn, refresh_callback):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.title("Registrar Nueva Campaña de Marketing")
-        self.geometry("500x550")
+        self.title("Agregar Campaña")
+        self.geometry("400x650")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
+        self.transient(master); self.grab_set(); self.focus_force()
         self.create_widgets()
 
     def create_widgets(self):
@@ -247,113 +239,133 @@ class AddMarketingCampaignDialog(Toplevel):
         Label(main_frame, text="Nueva Campaña", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
         # Nombre
-        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.name_entry = Entry(main_frame, font=FONT_MAIN)
-        self.name_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.name_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.name_entry.pack(fill='x', pady=2)
 
         # Objetivo
-        Label(main_frame, text="Objetivo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.obj_entry = Entry(main_frame, font=FONT_MAIN)
-        self.obj_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Objetivo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.objective_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.objective_entry.pack(fill='x', pady=2)
+        
+        # Fecha Inicio (YYYY-MM-DD)
+        Label(main_frame, text="Fecha Inicio (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.start_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.start_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        self.start_date_entry.pack(fill='x', pady=2)
+        
+        # Fecha Fin (YYYY-MM-DD) - Opcional
+        Label(main_frame, text="Fecha Fin (YYYY-MM-DD) [Opcional]:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.end_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.end_date_entry.pack(fill='x', pady=2)
 
         # Presupuesto
-        Label(main_frame, text="Presupuesto ($):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.budget_entry = Entry(main_frame, font=FONT_MAIN)
-        self.budget_entry.pack(fill='x', pady=(0, 10))
-        
-        # Fecha de Inicio (usaremos Entry simple si tkcalendar no está)
-        Label(main_frame, text="Fecha Inicio (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.start_date_entry = Entry(main_frame, font=FONT_MAIN)
-        self.start_date_entry.pack(fill='x', pady=(0, 10))
-        
-        Button(main_frame, text="Guardar Campaña", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.save_campaign).pack(pady=15)
+        Label(main_frame, text="Presupuesto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.budget_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.budget_entry.pack(fill='x', pady=2)
+
+        # Estado
+        Label(main_frame, text="Estado:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.status_var = StringVar(self)
+        self.status_var.set("Active") # Valor inicial
+        self.status_menu = OptionMenu(main_frame, self.status_var, "Active", "Completed", "Paused")
+        self.status_menu.config(bg=COLOR_BG_WHITE, font=FONT_MAIN)
+        self.status_menu.pack(fill='x', pady=2)
+
+        # Botón
+        Button(main_frame, text="Guardar Campaña", command=self.save_campaign, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
 
     def save_campaign(self):
         name = self.name_entry.get()
-        objective = self.obj_entry.get()
-        budget_str = self.budget_entry.get()
+        objective = self.objective_entry.get()
         start_date_str = self.start_date_entry.get()
+        end_date_str = self.end_date_entry.get()
+        budget_str = self.budget_entry.get()
+        status = self.status_var.get()
         
-        if not all([name, objective, budget_str, start_date_str]):
-            messagebox.showerror("Error", "Debe completar todos los campos.")
+        if not all([name, objective, start_date_str, budget_str, status]):
+            messagebox.showerror("Error", "Debe completar todos los campos obligatorios.")
             return
 
         try:
             budget = float(budget_str)
-            # Validación de formato de fecha simple
             datetime.strptime(start_date_str, '%Y-%m-%d')
+            if end_date_str:
+                 datetime.strptime(end_date_str, '%Y-%m-%d')
         except ValueError:
-            messagebox.showerror("Error", "El presupuesto debe ser un número válido y la fecha debe estar en formato YYYY-MM-DD.")
+            messagebox.showerror("Error", "El presupuesto debe ser un número válido y las fechas deben estar en formato YYYY-MM-DD.")
             return
 
-        # -------------------------------------------------------------
-        # LÓGICA DE DB: INSERT INTO campaigns
-        # -------------------------------------------------------------
         conn = self.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                insert_query = "INSERT INTO campaigns (name, objective, start_date, budget, status) VALUES (%s, %s, %s, %s, %s)"
-                # Estado por defecto 'Active'
-                cursor.execute(insert_query, (name, objective, start_date_str, budget, 'Active')) 
+                insert_query = "INSERT INTO campaigns (name, objective, start_date, end_date, budget, status) VALUES (%s, %s, %s, %s, %s, %s)"
+                
+                # Convertir cadena vacía a None para que MySQL lo tome como NULL
+                final_end_date = end_date_str if end_date_str else None
+                
+                cursor.execute(insert_query, (name, objective, start_date_str, final_end_date, budget, status))
                 conn.commit()
 
-                messagebox.showinfo("Éxito", f"Campaña '{name}' registrada correctamente.")
+                messagebox.showinfo("Éxito", "Campaña de marketing agregada correctamente.")
                 self.refresh_callback()
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al registrar campaña: {err}")
+                messagebox.showerror("Error de BD", f"Error al guardar: {err}")
             finally:
                 cursor.close()
 
+# ---
+
 class AddEmployeeDialog(Toplevel):
-    # ... (código AddEmployeeDialog existente) ...
+    """Diálogo para agregar un nuevo empleado (RRHH)."""
     def __init__(self, master, db_conn, refresh_callback):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.title("Registrar Nuevo Empleado")
-        self.geometry("500x600")
+        self.title("Agregar Nuevo Empleado")
+        self.geometry("400x450")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
+        self.transient(master); self.grab_set(); self.focus_force()
         self.create_widgets()
 
     def create_widgets(self):
-        main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=10)
+        main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Alta de Empleado", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Nuevo Empleado", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
         # Nombre y Apellido
-        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.fname_entry = Entry(main_frame, font=FONT_MAIN)
-        self.fname_entry.pack(fill='x', pady=(0, 10))
-        
-        Label(main_frame, text="Apellido:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.lname_entry = Entry(main_frame, font=FONT_MAIN)
-        self.lname_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.fname_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.fname_entry.pack(fill='x', pady=2)
+        Label(main_frame, text="Apellido:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.lname_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.lname_entry.pack(fill='x', pady=2)
 
         # Posición
-        Label(main_frame, text="Posición:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.pos_entry = Entry(main_frame, font=FONT_MAIN)
-        self.pos_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Posición:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.pos_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.pos_entry.pack(fill='x', pady=2)
 
         # Salario
-        Label(main_frame, text="Salario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.salary_entry = Entry(main_frame, font=FONT_MAIN)
-        self.salary_entry.pack(fill='x', pady=(0, 10))
-
-        # Fecha de Contratación
-        Label(main_frame, text="Fecha Contratación (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.hire_date_entry = Entry(main_frame, font=FONT_MAIN)
-        self.hire_date_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Salario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.salary_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.salary_entry.pack(fill='x', pady=2)
         
-        Button(main_frame, text="Registrar Empleado", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.save_employee).pack(pady=15)
+        # Fecha de Contratación
+        Label(main_frame, text="Fecha de Contratación (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.hire_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.hire_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        self.hire_date_entry.pack(fill='x', pady=2)
+
+        # Botón
+        Button(main_frame, text="Guardar Empleado", command=self.save_employee, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
 
     def save_employee(self):
         fname = self.fname_entry.get()
@@ -373,98 +385,79 @@ class AddEmployeeDialog(Toplevel):
             messagebox.showerror("Error", "El salario debe ser un número válido y la fecha debe estar en formato YYYY-MM-DD.")
             return
 
-        # -------------------------------------------------------------
-        # LÓGICA DE DB: INSERT INTO employees
-        # -------------------------------------------------------------
         conn = self.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                # Usamos sector_id=NULL por defecto si no tienes un selector de sector
-                insert_query = "INSERT INTO employees (first_name, last_name, hire_date, salary, position, is_active) VALUES (%s, %s, %s, %s, %s, %s)"
+                insert_query = "INSERT INTO employees (first_name, last_name, hire_date, salary, position, is_active) VALUES (%s, %s, %s, %s, %s, TRUE)"
                 
-                cursor.execute(insert_query, (fname, lname, hire_date_str, salary, position, True)) 
+                cursor.execute(insert_query, (fname, lname, hire_date_str, salary, position))
                 conn.commit()
 
-                messagebox.showinfo("Éxito", f"Empleado {fname} {lname} registrado correctamente.")
+                messagebox.showinfo("Éxito", "Empleado agregado correctamente.")
                 self.refresh_callback()
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al registrar empleado: {err}")
+                messagebox.showerror("Error de BD", f"Error al guardar: {err}")
             finally:
                 cursor.close()
 
 # =================================================================
-# DIÁLOGOS DE MODIFICAR (NUEVOS)
+# DIÁLOGOS DE MODIFICACIÓN (Nuevos/Completos para Modificar)
 # =================================================================
 
-class ModifyInventoryDialog(Toplevel):
-    def __init__(self, master, db_conn, refresh_callback, item_id):
+class EditInventoryDialog(Toplevel):
+    """Diálogo para modificar un item de inventario."""
+    def __init__(self, master, db_conn, refresh_callback, item_data):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.item_id = item_id # El ID del producto a modificar
-        self.title(f"Modificar Producto ID: {item_id}")
+        self.item_id = item_data[0] # ID
+        self.item_name = item_data[1] # Nombre
+        self.item_stock = item_data[2] # Stock
+
+        self.title(f"Modificar Item ID: {self.item_id}")
         self.geometry("400x250")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
-        self.current_data = self._fetch_current_data()
-        if not self.current_data:
-            messagebox.showerror("Error", "No se encontró el producto a modificar.")
-            self.destroy()
-            return
-        self.create_widgets()
+        self.transient(master); self.grab_set(); self.focus_force()
 
-    def _fetch_current_data(self):
-        conn = self.db_conn
-        if conn and conn.is_connected():
-            cursor = conn.cursor(dictionary=True)
-            try:
-                query = "SELECT name, stock FROM inventory WHERE ID = %s"
-                cursor.execute(query, (self.item_id,))
-                return cursor.fetchone()
-            except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al cargar datos: {err}")
-                return None
-            finally:
-                cursor.close()
-        return None
+        self.create_widgets()
 
     def create_widgets(self):
         main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Modificar Producto", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Modificar Inventario", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
-        Label(main_frame, text="Nombre del Producto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.name_entry = Entry(main_frame, font=FONT_MAIN)
-        self.name_entry.insert(0, self.current_data['name'])
-        self.name_entry.pack(fill='x', pady=(0, 10))
+        # Nombre
+        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.name_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.name_entry.insert(0, self.item_name)
+        self.name_entry.pack(fill='x', pady=2)
 
-        Label(main_frame, text="Cantidad (Stock):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.stock_entry = Entry(main_frame, font=FONT_MAIN)
-        self.stock_entry.insert(0, str(self.current_data['stock']))
-        self.stock_entry.pack(fill='x', pady=(0, 10))
-        
-        Button(main_frame, text="Guardar Cambios", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.update_product).pack(pady=15)
+        # Stock
+        Label(main_frame, text="Stock:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.stock_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.stock_entry.insert(0, self.item_stock)
+        self.stock_entry.pack(fill='x', pady=2)
 
-    def update_product(self):
+        # Botón
+        Button(main_frame, text="Guardar Cambios", command=self.save_changes, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
+    def save_changes(self):
         name = self.name_entry.get()
         stock_str = self.stock_entry.get()
-        
-        if not name or not stock_str:
+
+        if not all([name, stock_str]):
             messagebox.showerror("Error", "Debe completar todos los campos.")
             return
 
         try:
             stock = int(stock_str)
-            if stock < 0: raise ValueError
         except ValueError:
-            messagebox.showerror("Error", "La cantidad debe ser un número entero positivo.")
+            messagebox.showerror("Error", "El Stock debe ser un número entero válido.")
             return
 
         conn = self.db_conn
@@ -475,161 +468,131 @@ class ModifyInventoryDialog(Toplevel):
                 cursor.execute(update_query, (name, stock, self.item_id))
                 conn.commit()
 
-                messagebox.showinfo("Éxito", f"Producto '{name}' (ID: {self.item_id}) modificado exitosamente.")
+                messagebox.showinfo("Éxito", f"Item ID {self.item_id} modificado correctamente.")
                 self.refresh_callback()
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al modificar producto: {err}")
+                messagebox.showerror("Error de BD", f"Error al modificar: {err}")
             finally:
                 cursor.close()
-        else:
-            messagebox.showerror("Error", "No hay conexión activa a la base de datos.")
 
+# ---
 
-class ModifyFinanceDialog(Toplevel):
-    def __init__(self, master, db_conn, refresh_callback, item_id):
+class EditFinanceDialog(Toplevel):
+    """Diálogo para modificar un registro financiero."""
+    def __init__(self, master, db_conn, refresh_callback, item_data):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.item_id = item_id 
-        self.title(f"Modificar Movimiento Financiero ID: {item_id}")
-        self.geometry("450x400")
-        self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
-        self.current_data = self._fetch_current_data()
-        if not self.current_data:
-            messagebox.showerror("Error", "No se encontró el movimiento a modificar.")
-            self.destroy()
-            return
-        self.create_widgets()
+        # item_data: (transaction_id, type, amount, transaction_date, description)
+        self.item_id = item_data[0] 
+        self.item_type = item_data[1] 
+        self.item_amount = item_data[2] 
+        self.item_date = item_data[3] 
+        self.item_desc = item_data[4] 
 
-    def _fetch_current_data(self):
-        conn = self.db_conn
-        if conn and conn.is_connected():
-            cursor = conn.cursor(dictionary=True)
-            try:
-                # Usamos ID como PK (asumiendo) y obtenemos tipo, monto, descripcion
-                query = "SELECT ID, type, amount, description FROM financial_movements WHERE ID = %s"
-                cursor.execute(query, (self.item_id,))
-                return cursor.fetchone()
-            except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al cargar datos: {err}")
-                return None
-            finally:
-                cursor.close()
-        return None
+        self.title(f"Modificar Transacción ID: {self.item_id}")
+        self.geometry("400x350")
+        self.configure(bg=COLOR_BG_WHITE)
+        self.transient(master); self.grab_set(); self.focus_force()
+
+        self.create_widgets()
 
     def create_widgets(self):
         main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Modificar Movimiento", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Modificar Transacción", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+
+        # Tipo
+        Label(main_frame, text="Tipo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.type_var = StringVar(self)
+        self.type_var.set(self.item_type) # Valor inicial
+        self.type_menu = OptionMenu(main_frame, self.type_var, "Ingreso", "Egreso")
+        self.type_menu.config(bg=COLOR_BG_WHITE, font=FONT_MAIN)
+        self.type_menu.pack(fill='x', pady=2)
+
+        # Monto
+        Label(main_frame, text="Monto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.amount_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.amount_entry.insert(0, self.item_amount)
+        self.amount_entry.pack(fill='x', pady=2)
+
+        # Fecha (YYYY-MM-DD)
+        Label(main_frame, text="Fecha (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.date_entry.insert(0, self.item_date)
+        self.date_entry.pack(fill='x', pady=2)
+
+        # Descripción
+        Label(main_frame, text="Descripción:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.desc_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.desc_entry.insert(0, self.item_desc)
+        self.desc_entry.pack(fill='x', pady=2)
+
+        # Botón
+        Button(main_frame, text="Guardar Cambios", command=self.save_changes, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
+    def save_changes(self):
+        trans_type = self.type_var.get()
+        amount_str = self.amount_entry.get()
+        date_str = self.date_entry.get()
+        desc = self.desc_entry.get()
         
-        # El monto se muestra como positivo en el campo, el signo lo maneja la lógica
-        monto_display = abs(self.current_data['amount']) 
-        tipo_inicial = "Gasto" if self.current_data['amount'] < 0 else "Ingreso"
-
-        # Campo Monto
-        Label(main_frame, text="Monto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.monto_entry = Entry(main_frame, font=FONT_MAIN)
-        self.monto_entry.insert(0, str(monto_display))
-        self.monto_entry.pack(fill='x', pady=(0, 10))
-
-        # Campo Descripción
-        Label(main_frame, text="Descripción:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.desc_entry = Entry(main_frame, font=FONT_MAIN)
-        self.desc_entry.insert(0, self.current_data['description'])
-        self.desc_entry.pack(fill='x', pady=(0, 10))
-        
-        # Campo Tipo 
-        Label(main_frame, text="Tipo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.tipo_var = StringVar(self)
-        self.tipo_var.set(tipo_inicial) 
-        opciones_tipo = ["Ingreso", "Gasto"]
-        tipo_menu = OptionMenu(main_frame, self.tipo_var, *opciones_tipo)
-        tipo_menu.config(font=FONT_MAIN, bg=COLOR_BG_WHITE)
-        tipo_menu.pack(fill='x', pady=(0, 10))
-
-
-        Button(main_frame, text="Guardar Cambios", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.update_movement).pack(pady=15)
-
-    def update_movement(self):
-        monto_str = self.monto_entry.get()
-        descripcion = self.desc_entry.get()
-        tipo = self.tipo_var.get()
-        
-        if not monto_str or not descripcion:
+        if not all([trans_type, amount_str, date_str, desc]):
             messagebox.showerror("Error", "Debe completar todos los campos.")
             return
 
         try:
-            monto = float(monto_str)
-            if monto <= 0: raise ValueError
-            # Aplicar el signo para DB
-            if tipo == "Gasto":
-                monto = -abs(monto) 
+            amount = float(amount_str)
+            datetime.strptime(date_str, '%Y-%m-%d')
         except ValueError:
-            messagebox.showerror("Error", "El monto debe ser un número positivo.")
+            messagebox.showerror("Error", "El monto debe ser un número válido y la fecha debe estar en formato YYYY-MM-DD.")
             return
 
         conn = self.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                # Se actualiza el tipo (que es la descripción en la DB) y el monto.
-                update_query = "UPDATE financial_movements SET type = %s, amount = %s, description = %s WHERE ID = %s"
-                
-                cursor.execute(update_query, (tipo, monto, descripcion, self.item_id)) 
+                update_query = "UPDATE financial_transactions SET type = %s, amount = %s, transaction_date = %s, description = %s WHERE transaction_id = %s"
+                cursor.execute(update_query, (trans_type, amount, date_str, desc, self.item_id))
                 conn.commit()
 
-                messagebox.showinfo("Éxito", f"Movimiento ID {self.item_id} modificado correctamente.")
+                messagebox.showinfo("Éxito", f"Transacción ID {self.item_id} modificada correctamente.")
                 self.refresh_callback()
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al modificar: {err}")
+                messagebox.showerror("Error de BD", f"Error al modificar: {err}")
             finally:
                 cursor.close()
 
-class ModifyMarketingCampaignDialog(Toplevel):
-    def __init__(self, master, db_conn, refresh_callback, item_id):
+# ---
+
+class EditMarketingCampaignDialog(Toplevel):
+    """Diálogo para modificar una campaña de marketing."""
+    def __init__(self, master, db_conn, refresh_callback, item_data):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.item_id = item_id 
-        self.title(f"Modificar Campaña ID: {item_id}")
-        self.geometry("500x550")
+        # item_data: [ID, Nombre, Objetivo, Start_Date, End_Date, Budget, Status]
+        self.item_id = item_data[0] 
+        self.item_name = item_data[1] 
+        self.item_objective = item_data[2] 
+        self.item_start = item_data[3]
+        self.item_end = item_data[4]
+        self.item_budget = item_data[5]
+        self.item_status = item_data[6]
+
+        self.title(f"Modificar Campaña ID: {self.item_id}")
+        self.geometry("400x450")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
-        self.current_data = self._fetch_current_data()
-        if not self.current_data:
-            messagebox.showerror("Error", "No se encontró la campaña a modificar.")
-            self.destroy()
-            return
+        self.transient(master); self.grab_set(); self.focus_force()
+
         self.create_widgets()
 
-    def _fetch_current_data(self):
-        conn = self.db_conn
-        if conn and conn.is_connected():
-            cursor = conn.cursor(dictionary=True)
-            try:
-                # campaigns tiene: campaign_id, name, objective, start_date, budget, status
-                query = "SELECT name, objective, start_date, budget, status FROM campaigns WHERE campaign_id = %s"
-                cursor.execute(query, (self.item_id,))
-                return cursor.fetchone()
-            except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al cargar datos: {err}")
-                return None
-            finally:
-                cursor.close()
-        return None
-        
     def create_widgets(self):
         main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
@@ -637,67 +600,80 @@ class ModifyMarketingCampaignDialog(Toplevel):
         Label(main_frame, text="Modificar Campaña", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
         # Nombre
-        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.name_entry = Entry(main_frame, font=FONT_MAIN)
-        self.name_entry.insert(0, self.current_data['name'])
-        self.name_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.name_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.name_entry.insert(0, self.item_name)
+        self.name_entry.pack(fill='x', pady=2)
 
         # Objetivo
-        Label(main_frame, text="Objetivo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.obj_entry = Entry(main_frame, font=FONT_MAIN)
-        self.obj_entry.insert(0, self.current_data['objective'])
-        self.obj_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Objetivo:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.objective_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.objective_entry.insert(0, self.item_objective)
+        self.objective_entry.pack(fill='x', pady=2)
+        
+        # Fecha Inicio (YYYY-MM-DD)
+        Label(main_frame, text="Fecha Inicio (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.start_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.start_date_entry.insert(0, self.item_start)
+        self.start_date_entry.pack(fill='x', pady=2)
+        
+        # Fecha Fin (YYYY-MM-DD)
+        Label(main_frame, text="Fecha Fin (YYYY-MM-DD) [Opcional]:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.end_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        # Manejar None para la fecha de fin (si es NULL en la BD)
+        self.end_date_entry.insert(0, self.item_end if self.item_end else '') 
+        self.end_date_entry.pack(fill='x', pady=2)
 
         # Presupuesto
-        Label(main_frame, text="Presupuesto ($):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.budget_entry = Entry(main_frame, font=FONT_MAIN)
-        self.budget_entry.insert(0, str(self.current_data['budget']))
-        self.budget_entry.pack(fill='x', pady=(0, 10))
-        
-        # Fecha de Inicio
-        Label(main_frame, text="Fecha Inicio (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.start_date_entry = Entry(main_frame, font=FONT_MAIN)
-        self.start_date_entry.insert(0, str(self.current_data['start_date']))
-        self.start_date_entry.pack(fill='x', pady=(0, 10))
-        
-        # Estado
-        Label(main_frame, text="Estado:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.status_var = StringVar(self)
-        self.status_var.set(self.current_data['status'])
-        opciones_status = ["Active", "Completed", "Paused"]
-        status_menu = OptionMenu(main_frame, self.status_var, *opciones_status)
-        status_menu.config(font=FONT_MAIN, bg=COLOR_BG_WHITE)
-        status_menu.pack(fill='x', pady=(0, 10))
-        
-        Button(main_frame, text="Guardar Cambios", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.update_campaign).pack(pady=15)
+        Label(main_frame, text="Presupuesto:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.budget_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.budget_entry.insert(0, self.item_budget)
+        self.budget_entry.pack(fill='x', pady=2)
 
-    def update_campaign(self):
+        # Estado
+        Label(main_frame, text="Estado:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.status_var = StringVar(self)
+        self.status_var.set(self.item_status) # Valor inicial
+        self.status_menu = OptionMenu(main_frame, self.status_var, "Active", "Completed", "Paused")
+        self.status_menu.config(bg=COLOR_BG_WHITE, font=FONT_MAIN)
+        self.status_menu.pack(fill='x', pady=2)
+
+        # Botón
+        Button(main_frame, text="Guardar Cambios", command=self.save_changes, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
+
+    def save_changes(self):
         name = self.name_entry.get()
-        objective = self.obj_entry.get()
-        budget_str = self.budget_entry.get()
+        objective = self.objective_entry.get()
         start_date_str = self.start_date_entry.get()
+        end_date_str = self.end_date_entry.get()
+        budget_str = self.budget_entry.get()
         status = self.status_var.get()
         
-        if not all([name, objective, budget_str, start_date_str, status]):
-            messagebox.showerror("Error", "Debe completar todos los campos.")
+        if not all([name, objective, start_date_str, budget_str, status]):
+            messagebox.showerror("Error", "Debe completar todos los campos obligatorios.")
             return
 
         try:
             budget = float(budget_str)
-            # Validación de formato de fecha simple
             datetime.strptime(start_date_str, '%Y-%m-%d')
+            if end_date_str:
+                 datetime.strptime(end_date_str, '%Y-%m-%d')
         except ValueError:
-            messagebox.showerror("Error", "El presupuesto debe ser un número válido y la fecha debe estar en formato YYYY-MM-DD.")
+            messagebox.showerror("Error", "El presupuesto debe ser un número válido y las fechas deben estar en formato YYYY-MM-DD.")
             return
 
         conn = self.db_conn
         if conn and conn.is_connected():
             cursor = conn.cursor()
             try:
-                update_query = "UPDATE campaigns SET name = %s, objective = %s, start_date = %s, budget = %s, status = %s WHERE campaign_id = %s"
+                update_query = "UPDATE campaigns SET name = %s, objective = %s, start_date = %s, end_date = %s, budget = %s, status = %s WHERE campaign_id = %s"
                 
-                cursor.execute(update_query, (name, objective, start_date_str, budget, status, self.item_id)) 
+                # Convertir cadena vacía a None para que MySQL lo tome como NULL
+                final_end_date = end_date_str if end_date_str else None
+                
+                cursor.execute(update_query, (name, objective, start_date_str, final_end_date, budget, status, self.item_id)) 
                 conn.commit()
 
                 messagebox.showinfo("Éxito", f"Campaña ID {self.item_id} modificada correctamente.")
@@ -705,84 +681,73 @@ class ModifyMarketingCampaignDialog(Toplevel):
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al modificar campaña: {err}")
+                messagebox.showerror("Error de BD", f"Error al modificar: {err}")
             finally:
                 cursor.close()
 
-class ModifyEmployeeDialog(Toplevel):
-    def __init__(self, master, db_conn, refresh_callback, item_id):
+# ---
+
+class EditEmployeeDialog(Toplevel):
+    """Diálogo para modificar un registro de empleado (RRHH)."""
+    def __init__(self, master, db_conn, refresh_callback, item_data):
         super().__init__(master)
         self.db_conn = db_conn
         self.refresh_callback = refresh_callback
-        self.item_id = item_id 
-        self.title(f"Modificar Empleado ID: {item_id}")
-        self.geometry("500x600")
+        # item_data: (employee_id, first_name, last_name, hire_date, salary, position, is_active)
+        self.item_id = item_data[0] 
+        self.item_fname = item_data[1] 
+        self.item_lname = item_data[2] 
+        self.item_hire_date = item_data[3]
+        self.item_salary = item_data[4]
+        self.item_position = item_data[5]
+
+        self.title(f"Modificar Empleado ID: {self.item_id}")
+        self.geometry("400x450")
         self.configure(bg=COLOR_BG_WHITE)
-        self.transient(master)
-        self.grab_set()
-        self.focus_force()
-        self.current_data = self._fetch_current_data()
-        if not self.current_data:
-            messagebox.showerror("Error", "No se encontró el empleado a modificar.")
-            self.destroy()
-            return
+        self.transient(master); self.grab_set(); self.focus_force()
+
         self.create_widgets()
-    
-    def _fetch_current_data(self):
-        conn = self.db_conn
-        if conn and conn.is_connected():
-            cursor = conn.cursor(dictionary=True)
-            try:
-                # employees tiene: employee_id, first_name, last_name, hire_date, salary, position
-                query = "SELECT first_name, last_name, position, salary, hire_date FROM employees WHERE employee_id = %s"
-                cursor.execute(query, (self.item_id,))
-                return cursor.fetchone()
-            except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al cargar datos: {err}")
-                return None
-            finally:
-                cursor.close()
-        return None
 
     def create_widgets(self):
-        main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=10)
+        main_frame = Frame(self, bg=COLOR_BG_WHITE, padx=20, pady=20)
         main_frame.pack(fill="both", expand=True)
 
-        Label(main_frame, text="Modificación de Empleado", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
+        Label(main_frame, text="Modificar Empleado", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=10)
 
         # Nombre y Apellido
-        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.fname_entry = Entry(main_frame, font=FONT_MAIN)
-        self.fname_entry.insert(0, self.current_data['first_name'])
-        self.fname_entry.pack(fill='x', pady=(0, 10))
-        
-        Label(main_frame, text="Apellido:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.lname_entry = Entry(main_frame, font=FONT_MAIN)
-        self.lname_entry.insert(0, self.current_data['last_name'])
-        self.lname_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Nombre:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.fname_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.fname_entry.insert(0, self.item_fname)
+        self.fname_entry.pack(fill='x', pady=2)
+        Label(main_frame, text="Apellido:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.lname_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.lname_entry.insert(0, self.item_lname)
+        self.lname_entry.pack(fill='x', pady=2)
 
         # Posición
-        Label(main_frame, text="Posición:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.pos_entry = Entry(main_frame, font=FONT_MAIN)
-        self.pos_entry.insert(0, self.current_data['position'])
-        self.pos_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Posición:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.pos_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.pos_entry.insert(0, self.item_position)
+        self.pos_entry.pack(fill='x', pady=2)
 
         # Salario
-        Label(main_frame, text="Salario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.salary_entry = Entry(main_frame, font=FONT_MAIN)
-        self.salary_entry.insert(0, str(self.current_data['salary']))
-        self.salary_entry.pack(fill='x', pady=(0, 10))
-
-        # Fecha de Contratación
-        Label(main_frame, text="Fecha Contratación (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5,0))
-        self.hire_date_entry = Entry(main_frame, font=FONT_MAIN)
-        self.hire_date_entry.insert(0, str(self.current_data['hire_date']))
-        self.hire_date_entry.pack(fill='x', pady=(0, 10))
+        Label(main_frame, text="Salario:", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.salary_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.salary_entry.insert(0, self.item_salary)
+        self.salary_entry.pack(fill='x', pady=2)
         
-        Button(main_frame, text="Guardar Cambios", bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
-               font=FONT_MAIN, relief=FLAT, command=self.update_employee).pack(pady=15)
+        # Fecha de Contratación
+        Label(main_frame, text="Fecha de Contratación (YYYY-MM-DD):", bg=COLOR_BG_WHITE, font=FONT_MAIN).pack(anchor='w', pady=(5, 0))
+        self.hire_date_entry = Entry(main_frame, font=FONT_MAIN, width=40)
+        self.hire_date_entry.insert(0, self.item_hire_date)
+        self.hire_date_entry.pack(fill='x', pady=2)
 
-    def update_employee(self):
+        # Botón
+        Button(main_frame, text="Guardar Cambios", command=self.save_changes, 
+               bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, font=FONT_MAIN, relief=FLAT).pack(pady=20)
+
+
+    def save_changes(self):
         fname = self.fname_entry.get()
         lname = self.lname_entry.get()
         position = self.pos_entry.get()
@@ -814,6 +779,6 @@ class ModifyEmployeeDialog(Toplevel):
                 self.destroy()
 
             except mysql.connector.Error as err:
-                messagebox.showerror("Error de DB", f"Error al modificar empleado: {err}")
+                messagebox.showerror("Error de BD", f"Error al modificar: {err}")
             finally:
                 cursor.close()
