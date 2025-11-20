@@ -108,9 +108,9 @@ class ContentArea:
         header_list_frame.pack(fill='x')
         Label(header_list_frame, text="Resumen General", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        self.create_list_card("Empleados Activos", "250", "Ver RRHH", self.show_rrhh_list) # Actualizado
-        self.create_list_card("Stock Crítico", "5 Productos", "Ver Alertas", self.show_inventory_list)
-        self.create_list_card("Ventas Mes", "$1.2M", "Ver Detalle", self.show_finance_list)
+        self.create_list_card("Cantidad de empleados", "", "Ver RRHH", self.show_rrhh_list) # Actualizado
+        self.create_list_card("Cantidad de Stock", "", "Ver Alertas", self.show_inventory_list)
+        self.create_list_card("Ventas", "", "Ver Ventas", self.show_finance_list)
         
         # Carga una vista de "Dashboard" por defecto en el área central
         self.switch_detail_frame(DefaultDetailView) 
@@ -142,10 +142,10 @@ class ContentArea:
         # Información relevante para la barra lateral
         header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
         header_list_frame.pack(fill='x')
-        Label(header_list_frame, text="Indicadores Clave (KPIs)", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+        Label(header_list_frame, text="Resumen Finanzas", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
         self.create_list_card("Margen de Ganancia", "15%", "Ver Análisis", lambda: self._create_default_detail("Finanzas", "Análisis Margen"))
-        self.create_list_card("Pagos Pendientes", "3 Facturas", "Gestionar", lambda: self._create_default_detail("Finanzas", "Pagos Pendientes"))
+        
         
         # Muestra la tabla de Gestión de Finanzas en el centro (row=2)
         self.switch_detail_frame(FinanzasView)
@@ -158,8 +158,7 @@ class ContentArea:
         header_list_frame.pack(fill='x')
         Label(header_list_frame, text="Resumen de Campañas", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        self.create_list_card("Campaña Navidad", "Activa, $50k gastados", "Ver Rendimiento", lambda: self._create_default_detail("Marketing", "Rendimiento Navidad"))
-        self.create_list_card("Próxima Campaña", "Vuelta a Clases", "Planificar", lambda: self._create_default_detail("Marketing", "Planificación"))
+
         
         # Muestra la tabla de Gestión de Marketing en el centro (row=2)
         self.switch_detail_frame(MarketingView)
@@ -173,7 +172,7 @@ class ContentArea:
         Label(header_list_frame, text="Alertas de Personal", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
         self.create_list_card("Ausencias Hoy", "2 Empleados", "Ver Lista", lambda: self._create_default_detail("RRHH", "Ausencias"))
-        self.create_list_card("Vacantes Abiertas", "4 Puestos", "Revisar CVs", lambda: self._create_default_detail("RRHH", "Vacantes"))
+        
         
         # Muestra la tabla de Gestión de RRHH en el centro (row=2)
         self.switch_detail_frame(RRHHView)
@@ -186,8 +185,7 @@ class ContentArea:
         Label(header_list_frame, text="Archivos Recientes", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
         items = [
-            ("Reporte Q3 2025", "PDF", "Descargar", lambda: messagebox.showinfo("Reporte", "Descargando Reporte Q3")),
-            ("Backup Usuarios", "SQL", "Ver Logs", lambda: messagebox.showinfo("Reporte", "Abriendo Logs")),
+
         ]
         if not items:
             Label(self.list_area, text="No hay archivos recientes.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
