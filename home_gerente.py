@@ -44,7 +44,7 @@ class GerenteHome:
         self.content_area = ContentArea(master, self)
         
         # Iniciar con la vista por defecto (Llamando al método dentro de ContentArea)
-        self.content_area.show_dashboard_list() 
+        self.content_area.show_dashboard()
 
     def create_db_connection(self):
         try:

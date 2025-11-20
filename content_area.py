@@ -1,8 +1,9 @@
-from tkinter import Frame, Label, Button, LEFT, FLAT, BOTH, END, X, GROOVE
-# Importar módulos
+# content_area.py (VERSION SIN GESTIÓN DE USUARIOS)
+from tkinter import Frame, Label, Button, LEFT, FLAT, BOTH, END, X, GROOVE, messagebox
+# Importar módulos y constantes
 from constants import *
-from views import UserManagementView, InventoryManagementView, FinanzasView, MarketingView, RRHHView 
-# ^^^ ¡SOLO ESTA LÍNEA DEBE EXISTIR PARA VIEWS! ^^^
+# IMPORTACIÓN CORREGIDA: Se quita UserManagementView
+from views import InventoryManagementView, FinanzasView, MarketingView, RRHHView 
 
 class ContentArea:
     """
@@ -17,6 +18,10 @@ class ContentArea:
         self.content_container = Frame(self.master, bg=COLOR_BG_WHITE)
         self.content_container.grid(row=1, column=0, sticky="nswe")
         
+        # Configuración de columnas: 
+        # Col 0: Menú Lateral (Fijo)
+        # Col 1: Área de Lista/Alertas/KPIs (Fijo, pequeño)
+        # Col 2: Área de Detalle/Tabla (Expande)
         self.content_container.grid_columnconfigure(0, weight=0, minsize=200) 
         self.content_container.grid_columnconfigure(1, weight=0, minsize=300) 
         self.content_container.grid_columnconfigure(2, weight=1)
@@ -24,163 +29,93 @@ class ContentArea:
 
         self._create_layout_frames()
         self._populate_main_menu()
-        
-    def _create_layout_frames(self):
-        """Configura el área principal de contenido con separadores verticales y borde derecho final."""
-        # 1. Menú Principal (Sidebar) - Borde a la derecha
-        self.main_menu = Frame(self.content_container, width=200, bg=COLOR_SIDEBAR, 
-                                highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
-                                highlightthickness=1) 
-        self.main_menu.grid(row=0, column=0, sticky="nswe") 
-        self.main_menu.pack_propagate(False) 
-        
-        # 2. Área de Listado (Central) - Borde a la derecha
-        self.list_area = Frame(self.content_container, width=300, bg=COLOR_BG_WHITE, 
-                                highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
-                                highlightthickness=1) 
-        self.list_area.grid(row=0, column=1, sticky="nswe")
-        self.list_area.pack_propagate(False)
+        self.show_dashboard() # Mostrar el dashboard por defecto
 
-        # 3. Área de Detalle (Derecha) - Borde a la derecha
-        self.detail_area = Frame(self.content_container, bg=COLOR_BG_WHITE,
-                                    highlightbackground=COLOR_BORDER_LIGHT, highlightcolor=COLOR_BORDER_LIGHT, 
-                                    highlightthickness=1) 
-        self.detail_area.grid(row=0, column=2, sticky="nswe") 
+    def _create_layout_frames(self):
+        """Configura el área principal de contenido con separadores verticales."""
+        # 1. Menú Principal (SideBar) - Columna 0
+        self.sidebar_frame = Frame(self.content_container, bg=COLOR_SIDEBAR, width=200, relief=GROOVE, bd=0)
+        self.sidebar_frame.grid(row=0, column=0, sticky="nswe")
+        
+        # 2. Área de Lista/Alertas (List Area) - Columna 1
+        self.list_area = Frame(self.content_container, bg=COLOR_BG_WHITE, width=300)
+        self.list_area.grid(row=0, column=1, sticky="nswe")
+        
+        # Separador entre Lista y Detalle
+        separator = Frame(self.content_container, bg=COLOR_BORDER_LIGHT, width=1)
+        separator.grid(row=0, column=2, sticky="nsw")
+        
+        # 3. Área de Detalle/Tabla (Detail Area) - Columna 2
+        self.detail_area = Frame(self.content_container, bg=COLOR_BG_WHITE)
+        self.detail_area.grid(row=0, column=2, sticky="nswe", padx=(1, 0))
         self.detail_area.grid_columnconfigure(0, weight=1)
         self.detail_area.grid_rowconfigure(0, weight=1)
-
-    # content_area.py (dentro de la clase ContentArea)
-
+        
     def _populate_main_menu(self):
-        """Llena el área de menú principal con los botones de navegación."""
-        # Título del Menú
-        # CORRECCIÓN: Usar self.main_menu en lugar de self.sidebar
-        Label(self.main_menu, text="Menú Principal", font=FONT_SUBHEADING, 
-              bg=COLOR_SIDEBAR, fg=COLOR_TEXT_HEADING).pack(pady=(10, 5))
+        """Crea los botones de navegación del menú lateral."""
+        menu_items = [
+            ("🏠 Dashboard", self.show_dashboard),
+            # Se ha eliminado "👥 Gestión de Usuarios"
+            ("📦 Gestión de Inventario", self.show_inventory_list),
+            ("💰 Gestión de Finanzas", self.show_finance_list),
+            ("📈 Gestión de Marketing", self.show_marketing_list),
+            ("🧑‍💼 Gestión de RRHH", self.show_rrhh_list),
+            ("📄 Reportes y Archivos", self.show_reports_list),
+        ]
         
-        # Separador
-        # CORRECCIÓN: Usar self.main_menu en lugar de self.sidebar
-        Frame(self.main_menu, bg=COLOR_BORDER_LIGHT, height=2).pack(fill='x', padx=10, pady=5)
+        for text, command in menu_items:
+            Button(self.sidebar_frame, text=text, font=FONT_MAIN, bg=COLOR_SIDEBAR, 
+                   fg=COLOR_TEXT_HEADING, relief=FLAT, anchor='w', padx=15,
+                   activebackground='#e5e5e5', activeforeground=COLOR_ACCENT,
+                   command=command).pack(fill=X, pady=2, ipady=5)
 
-        # Botones de Módulos
-        # CORRECCIÓN: Usar self._create_menu_button y corregir el comando de Usuarios
-        self._create_menu_button("👥 Gestión de Usuarios", self.show_user_management_list)
-        self._create_menu_button("📦 Gestión de Inventario", self.show_inventory_list)
+    def create_list_card(self, title, subtitle, note, command):
+        """Crea una tarjeta de información en el área de lista."""
+        card = Frame(self.list_area, bg=COLOR_CARD_BG, padx=10, pady=5, relief=GROOVE, bd=1)
+        card.pack(fill=X, padx=10, pady=5)
         
-        # --- NUEVOS MÓDULOS EN LA COLUMNA IZQUIERDA ---
-        self._create_menu_button("💰 Finanzas", self.show_finance_list)
-        self._create_menu_button("📈 Marketing", self.show_marketing_list)
-        self._create_menu_button("🧑‍💼 RRHH", self.show_rrhh_list)
-        # ----------------------------------------------
+        Label(card, text=title, font=FONT_MAIN, bg=COLOR_CARD_BG, fg=COLOR_TEXT_HEADING).pack(anchor='w')
+        Label(card, text=subtitle, font=('Segoe UI', 9), bg=COLOR_CARD_BG, fg=COLOR_TEXT_NORMAL).pack(anchor='w')
         
-        # Separador para Reportes 
-        # CORRECCIÓN: Usar self.main_menu en lugar de self.sidebar
-        Frame(self.main_menu, bg=COLOR_BORDER_LIGHT, height=2).pack(fill='x', padx=10, pady=5)
-        self._create_menu_button("📄 Reportes", self.show_reports_list)
+        btn = Button(card, text=note, font=('Segoe UI', 8, 'bold'), bg=COLOR_ACCENT, fg=COLOR_BG_WHITE, 
+                     relief=FLAT, command=command)
+        btn.pack(pady=5, side=LEFT)
 
-    # ... (el resto de los métodos de la clase ContentArea)
-            
-    def _create_menu_button(self, text, command):
-        # CORRECCIÓN: Definición del método con guion bajo
-        btn = Button(self.main_menu, text=text, bg=COLOR_SIDEBAR, fg=COLOR_TEXT_NORMAL, 
-                      font=FONT_MAIN, relief=FLAT, anchor='w', padx=20,
-                      activebackground=COLOR_ACCENT, activeforeground=COLOR_BG_WHITE,
-                      command=command)
-        btn.pack(fill='x', ipady=10, pady=(10, 1)) 
-        
-        btn.bind("<Enter>", lambda e, b=btn: b.config(bg='#e0e0e0'))
-        btn.bind("<Leave>", lambda e, b=btn: b.config(bg=COLOR_SIDEBAR))
-
-    def switch_detail_frame(self, new_view_class):
-        """Destruye el frame de detalle actual y crea una nueva vista."""
-        if self.current_detail_frame is not None:
+    def switch_detail_frame(self, ViewClass):
+        """Destruye la vista actual y crea una nueva en el área de detalle."""
+        if self.current_detail_frame:
             self.current_detail_frame.destroy()
             
-        # Instancia la nueva vista pasándole el frame contenedor y el controlador principal
-        new_view_instance = new_view_class(self.detail_area, self.app_controller)
-        self.current_detail_frame = new_view_instance.frame
-
-    def _create_default_detail(self, module, title):
-        """Crea una vista de detalle genérica para módulos no complejos."""
-        if self.current_detail_frame is not None:
-            self.current_detail_frame.destroy()
-
-        self.current_detail_frame = Frame(self.detail_area, bg=COLOR_BG_WHITE, padx=30, pady=5) 
-        self.current_detail_frame.grid(row=0, column=0, sticky="nswe")
-        self.current_detail_frame.grid_columnconfigure(0, weight=1)
-        
-        Label(self.current_detail_frame, text=f"{module}: {title}", 
-              font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=(0, 20), anchor='w')
-
-        Label(self.current_detail_frame, text=f"Área de Detalle para {module}. Aquí se muestra la información específica de '{title}' y la funcionalidad de edición.", justify=LEFT,
-              font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=10, anchor='w')
-
-    def _create_dashboard_detail(self, title):
-        """Crea la vista de detalle del Dashboard (Placeholder)."""
-        if self.current_detail_frame is not None:
-            self.current_detail_frame.destroy()
-            
-        self.current_detail_frame = Frame(self.detail_area, bg=COLOR_BG_WHITE, padx=30, pady=5) 
-        self.current_detail_frame.grid(row=0, column=0, sticky="nswe")
-        self.current_detail_frame.grid_columnconfigure(0, weight=1)
-        self.current_detail_frame.grid_rowconfigure(1, weight=1)
-
-        Label(self.current_detail_frame, text=f"Dashboard: {title}", 
-              font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).grid(row=0, column=0, sticky="w", pady=(0, 10))
-
-        placeholder = Label(self.current_detail_frame, 
-                             text="ÁREA DE TRABAJO DEL DASHBOARD\n\nAquí debes agregar los GRÁFICOS y MÉTICAS que necesita el Gerente (Ventas, Stock, etc.).", 
-                             font=('Segoe UI', 12, 'italic'), bg=COLOR_CARD_BG, fg=COLOR_TEXT_NORMAL,
-                             height=15, relief='groove')
-        placeholder.grid(row=1, column=0, sticky="nswe", padx=10, pady=20)
-
-    # =================================================================
-    # VISTAS DE LISTADO (LÓGICA DEL BOTÓN)
-    # =================================================================
+        # El constructor de la vista debe usar self.detail_area como master_frame
+        view_instance = ViewClass(self.detail_area, self.app_controller)
+        self.current_detail_frame = view_instance.frame
+        self.current_detail_frame.grid(row=0, column=0, sticky="nsew")
 
     def clear_list_area(self):
+        """Limpia todos los widgets del área de lista."""
         for widget in self.list_area.winfo_children():
             widget.destroy()
 
-    def create_list_card(self, title, subtitle, detail, command_func):
-        card = Frame(self.list_area, bg=COLOR_CARD_BG, padx=15, pady=10, relief=FLAT, bd=0)
-        card.pack(fill='x', pady=5, padx=5)
+    # =================================================================
+    # VISTAS DE CONTENIDO (Ahora cargan la tabla/detalle directamente)
+    # =================================================================
 
-        Label(card, text=title, font=('Segoe UI', 10, 'bold'), bg=COLOR_CARD_BG, fg=COLOR_TEXT_HEADING, anchor='w').pack(fill='x')
-        Label(card, text=subtitle, font=('Segoe UI', 9), bg=COLOR_CARD_BG, fg=COLOR_TEXT_NORMAL, anchor='w').pack(fill='x')
-        Label(card, text=detail, font=('Segoe UI', 8), bg=COLOR_CARD_BG, fg=COLOR_TEXT_NORMAL, anchor='w').pack(fill='x')
-
-        card.bind("<Button-1>", lambda e: command_func())
-        for widget in card.winfo_children():
-            widget.bind("<Button-1>", lambda e: command_func())
-        
-        card.bind("<Enter>", lambda e, f=card: f.config(bg='#e0e0e0'))
-        card.bind("<Leave>", lambda e, f=card: f.config(bg=COLOR_CARD_BG))
-        
-    def show_dashboard_list(self):
+    def show_dashboard(self):
         self.clear_list_area()
         
+        # Simulación de tarjetas de lista/kpis para el dashboard
         header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
         header_list_frame.pack(fill='x')
+        Label(header_list_frame, text="Resumen General", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        Label(header_list_frame, text="Métricas Rápidas", 
-              font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w') 
+        self.create_list_card("Empleados Activos", "250", "Ver RRHH", self.show_rrhh_list) # Actualizado
+        self.create_list_card("Stock Crítico", "5 Productos", "Ver Alertas", self.show_inventory_list)
+        self.create_list_card("Ventas Mes", "$1.2M", "Ver Detalle", self.show_finance_list)
         
-        Label(self.list_area, text="[ÁREA DE CARDS VACÍA]\nAgrega aquí tus métricas clave.", 
-              font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
-
-        self._create_dashboard_detail("Vista General del Sistema")
-
-    def show_user_management_list(self):
-        self.clear_list_area()
+        # Carga una vista de "Dashboard" por defecto en el área central
+        self.switch_detail_frame(DefaultDetailView) 
         
-        header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
-        header_list_frame.pack(fill='x')
-        Label(header_list_frame, text="Usuarios Recientes", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
-
-        Label(self.list_area, text="la lista completa de 'Gestión de Usuarios'.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
-            
-        self.switch_detail_frame(UserManagementView)
+    # **La función show_user_management_list ha sido ELIMINADA**
 
     def show_inventory_list(self):
         self.clear_list_area()
@@ -189,50 +124,59 @@ class ContentArea:
         header_list_frame.pack(fill='x')
         Label(header_list_frame, text="Alertas de Stock", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        items = []
+        items = [
+            ("Tv Samsung", "Stock: 10", "Pedir Reposición", lambda: self._create_default_detail("Inventario", "Pedir TV Samsung")),
+        ]
         if not items:
             Label(self.list_area, text="No hay alertas de inventario.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
 
-        for name, stock, note in items:
-            self.create_list_card(name, stock, note, lambda n=name: self._create_default_detail("Inventario", n))
+        for title, subtitle, note, command in items:
+            self.create_list_card(title, subtitle, note, command)
 
+        # Muestra la tabla de Gestión de Inventario en el centro (row=2)
         self.switch_detail_frame(InventoryManagementView)
-    
+        
     def show_finance_list(self):
-        """Muestra la vista de Finanzas."""
         self.clear_list_area()
         
+        # Información relevante para la barra lateral
         header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
         header_list_frame.pack(fill='x')
-        Label(header_list_frame, text="Ingresos Recientes", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+        Label(header_list_frame, text="Indicadores Clave (KPIs)", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        Label(self.list_area, text="Resumen Financiero: Ver detalle en la derecha.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
-
-        self.switch_detail_frame(FinanzasView) # Cambia a la vista de detalle de Finanzas
+        self.create_list_card("Margen de Ganancia", "15%", "Ver Análisis", lambda: self._create_default_detail("Finanzas", "Análisis Margen"))
+        self.create_list_card("Pagos Pendientes", "3 Facturas", "Gestionar", lambda: self._create_default_detail("Finanzas", "Pagos Pendientes"))
+        
+        # Muestra la tabla de Gestión de Finanzas en el centro (row=2)
+        self.switch_detail_frame(FinanzasView)
 
     def show_marketing_list(self):
-        """Muestra la vista de Marketing."""
         self.clear_list_area()
         
+        # Información relevante para la barra lateral
         header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
         header_list_frame.pack(fill='x')
-        Label(header_list_frame, text="Campañas Activas", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
-
-        Label(self.list_area, text="Campañas: Ver detalle en la derecha.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
-
-        self.switch_detail_frame(MarketingView) # Cambia a la vista de detalle de Marketing
+        Label(header_list_frame, text="Resumen de Campañas", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+        
+        self.create_list_card("Campaña Navidad", "Activa, $50k gastados", "Ver Rendimiento", lambda: self._create_default_detail("Marketing", "Rendimiento Navidad"))
+        self.create_list_card("Próxima Campaña", "Vuelta a Clases", "Planificar", lambda: self._create_default_detail("Marketing", "Planificación"))
+        
+        # Muestra la tabla de Gestión de Marketing en el centro (row=2)
+        self.switch_detail_frame(MarketingView)
 
     def show_rrhh_list(self):
-        """Muestra la vista de RRHH."""
         self.clear_list_area()
         
+        # Información relevante para la barra lateral
         header_list_frame = Frame(self.list_area, bg=COLOR_BG_WHITE, padx=10, pady=5)
         header_list_frame.pack(fill='x')
-        Label(header_list_frame, text="Personal y Reclutamiento", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
+        Label(header_list_frame, text="Alertas de Personal", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        Label(self.list_area, text="Datos de RRHH: Ver detalle en la derecha.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
-
-        self.switch_detail_frame(RRHHView) # Cambia a la vista de detalle de RRHH
+        self.create_list_card("Ausencias Hoy", "2 Empleados", "Ver Lista", lambda: self._create_default_detail("RRHH", "Ausencias"))
+        self.create_list_card("Vacantes Abiertas", "4 Puestos", "Revisar CVs", lambda: self._create_default_detail("RRHH", "Vacantes"))
+        
+        # Muestra la tabla de Gestión de RRHH en el centro (row=2)
+        self.switch_detail_frame(RRHHView)
 
     def show_reports_list(self):
         self.clear_list_area()
@@ -241,11 +185,39 @@ class ContentArea:
         header_list_frame.pack(fill='x')
         Label(header_list_frame, text="Archivos Recientes", font=FONT_SUBHEADING, bg=COLOR_BG_WHITE, fg=COLOR_ACCENT).pack(pady=0, anchor='w')
         
-        items = []
+        items = [
+            ("Reporte Q3 2025", "PDF", "Descargar", lambda: messagebox.showinfo("Reporte", "Descargando Reporte Q3")),
+            ("Backup Usuarios", "SQL", "Ver Logs", lambda: messagebox.showinfo("Reporte", "Abriendo Logs")),
+        ]
         if not items:
-            Label(self.list_area, text="No hay reportes disponibles.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
+            Label(self.list_area, text="No hay archivos recientes.", font=FONT_MAIN, bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20, padx=5)
 
-        for title, date, action in items:
-            self.create_list_card(title, date, action, lambda t=title: self._create_default_detail("Reportes", t))
+        for title, subtitle, note, command in items:
+            self.create_list_card(title, subtitle, note, command)
 
-        self._create_default_detail("Reportes", "Vista de Reportes Generales")
+        # Carga una vista de "Reportes" por defecto en el área central
+        self.switch_detail_frame(DefaultDetailView) 
+    
+    def _create_default_detail(self, module, detail):
+        """Función auxiliar para mostrar contenido de ejemplo en el área de detalle."""
+        # Usa una lambda para crear la vista con argumentos dinámicos
+        self.switch_detail_frame(lambda master, app: DefaultDetailView(master, app, module, detail))
+
+class DefaultDetailView:
+    """Vista de detalle por defecto/placeholder."""
+    def __init__(self, master_frame, home_app, module="Bienvenido", detail="Selecciona una opción del menú"):
+        self.frame = Frame(master_frame, bg=COLOR_BG_WHITE, padx=30, pady=30)
+        self.frame.grid(row=0, column=0, sticky="nswe")
+        self.frame.grid_columnconfigure(0, weight=1)
+        self.frame.grid_rowconfigure(0, weight=1) # Centrar contenido
+        
+        content_frame = Frame(self.frame, bg=COLOR_BG_WHITE)
+        # Usamos grid en el content_frame para centrar el contenido en el medio de toda la vista
+        content_frame.grid(row=0, column=0, sticky="") 
+        
+        Label(content_frame, text=f"Módulo: {module}", font=FONT_HEADING, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_HEADING).pack(pady=10)
+        Label(content_frame, text=f"Acción: {detail}", font=FONT_SUBHEADING, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=5)
+        Label(content_frame, text="El detalle de la información seleccionada aparecerá aquí.", font=FONT_MAIN, 
+              bg=COLOR_BG_WHITE, fg=COLOR_TEXT_NORMAL).pack(pady=20)
